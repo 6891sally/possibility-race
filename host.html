@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>가능성 레이스 · 선생님</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="host">
+<div id="stage">
+  <button class="iconbtn" id="mute" style="right:24px;top:20px"></button>
+
+  <!-- 잠금 -->
+  <section class="screen active center" id="s-lock">
+    <h1>🔒 선생님 화면</h1>
+    <p style="font-size:34px">비밀번호 4자리를 눌러 주세요</p>
+    <div class="lockdots" id="dots"><i></i><i></i><i></i><i></i></div>
+    <div class="keypad" id="lockpad"></div>
+    <p class="warn" id="lock-msg">&nbsp;</p>
+  </section>
+
+  <!-- 설정 -->
+  <section class="screen center" id="s-setup">
+    <h1>🏁 가능성 레이스 준비</h1>
+    <p class="sub" id="mode-lab" style="font-size:26px"></p>
+    <div class="setup-grid">
+      <div class="card" style="text-align:left">
+        <div class="opt-title">📚 출제 범위</div>
+        <div class="opts" id="o-range"></div>
+        <div class="opt-title" style="margin-top:22px">🔢 문제 수</div>
+        <div class="opts" id="o-total"></div>
+        <div class="opt-title" style="margin-top:22px">⏰ 제한 시간</div>
+        <div class="opts" id="o-limit"></div>
+      </div>
+      <div class="card" style="text-align:left">
+        <div class="opt-title">🎁 아이템 사용</div>
+        <div class="opts" id="o-itemson"></div>
+        <div class="opt-title" style="margin-top:22px">아이템별 켜기/끄기</div>
+        <div class="opts" id="o-items"></div>
+        <p class="sub" style="font-size:24px;margin-top:16px">아이템 상자는 3문제마다 나와요.<br>마지막 문제는 모두 점수 2배 🏁</p>
+      </div>
+    </div>
+    <div class="row" style="margin-top:30px">
+      <button class="btn big" id="make">🚪 방 만들기</button>
+      <button class="btn big blue" id="resume" style="display:none"></button>
+      <button class="btn big green" id="apply" style="display:none">✔ 이 방에 적용하기</button>
+    </div>
+    <p class="warn" id="setup-msg">&nbsp;</p>
+  </section>
+
+  <!-- 대기실 -->
+  <section class="screen" id="s-lobby">
+    <div class="lobby-head">
+      <div>
+        <div style="font-size:34px">방 코드</div>
+        <div class="roomcode" id="l-code">0000</div>
+      </div>
+      <div class="lobby-info grow">
+        <div>① 태블릿에서 <b id="l-url">play.html</b> 열기</div>
+        <div>② 방 코드 → 번호 → 이름 → 캐릭터</div>
+        <div class="sub" style="font-size:28px"><span id="l-set"></span> <button class="btn white sm" id="l-edit" style="margin-left:10px">⚙️ 설정 바꾸기</button></div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:60px" id="l-count">0명 입장</div>
+        <div class="warn" id="l-dup">&nbsp;</div>
+        <button class="btn big green" id="l-start" disabled>▶ 시작</button>
+      </div>
+    </div>
+    <div class="pgrid" id="l-grid"></div>
+  </section>
+
+  <!-- 문제 -->
+  <section class="screen" id="s-question">
+    <div class="topbar">
+      <span class="pill" id="q-no">1 / 10</span>
+      <span class="pill" id="q-lesson">5차시</span>
+      <div class="timer" id="q-timer"><i></i></div>
+      <span class="pill" id="q-sec" style="min-width:110px;text-align:center">20초</span>
+      <span class="pill hot" id="q-spurt" style="display:none">🏁 점수 2배</span>
+    </div>
+    <div class="prompt" id="q-prompt"></div>
+    <div id="q-body" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
+    <div class="ctrl">
+      <div class="answered">답한 학생 <b id="q-ans">0</b> / <span id="q-tot">0</span></div>
+      <span class="grow"></span>
+      <button class="btn white" id="q-pause">⏸ 일시정지</button>
+      <button class="btn white" id="q-skip">⏭ 문제 건너뛰기</button>
+      <button class="btn gray" id="q-reset">🔄 게임 초기화</button>
+      <button class="btn" id="q-reveal">정답 공개 👀</button>
+    </div>
+    <div class="overlay" id="pause-ov"><div class="spurt">⏸ 잠깐 멈춤</div><button class="btn big" id="q-resume" style="margin-top:30px">▶ 계속하기</button></div>
+  </section>
+
+  <!-- 정답 공개 -->
+  <section class="screen" id="s-reveal">
+    <div class="topbar">
+      <span class="pill" id="r-no">1 / 10</span>
+      <span class="pill" id="r-lesson"></span>
+      <span class="grow"></span>
+      <button class="btn gray sm" id="r-reset">🔄 게임 초기화</button>
+    </div>
+    <div class="prompt" id="r-prompt" style="min-height:90px;font-size:42px"></div>
+    <div class="reveal-wrap">
+      <div class="reveal-left">
+        <div id="r-body" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
+        <div id="r-exp"></div>
+      </div>
+      <div class="reveal-right">
+        <div class="answer-big">정답: <span class="a" id="r-ans"></span></div>
+        <div class="answered" style="text-align:center" id="r-sum"></div>
+        <div class="bars" id="r-bars"></div>
+        <button class="btn big" id="r-race" style="margin-top:20px">🏃 달리기 보기</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 달리기 -->
+  <section class="screen" id="s-race">
+    <div class="topbar">
+      <span class="pill" id="t-no"></span>
+      <span style="font-size:44px" id="t-title">🏃 달리기!</span>
+      <span class="grow"></span>
+      <button class="btn gray sm" id="t-reset">🔄 게임 초기화</button>
+      <button class="btn big" id="t-next" style="min-height:70px;font-size:32px">다음 문제 ▶</button>
+    </div>
+    <div class="track" id="track"></div>
+  </section>
+
+  <!-- 아이템 타임 -->
+  <section class="screen" id="s-item">
+    <div class="topbar">
+      <span style="font-size:56px">🎁 아이템 타임!</span>
+      <span class="grow"></span>
+      <span class="pill" id="i-used">사용 0명</span>
+      <button class="btn big" id="i-done" style="min-height:70px;font-size:32px">🌪️ 아이템 타임 끝내기</button>
+      <button class="btn big green" id="i-next" style="min-height:70px;font-size:32px;display:none">다음 문제 ▶</button>
+    </div>
+    <p style="font-size:30px;margin:8px 0" id="i-help">태블릿에서 아이템을 확인해요! ⚡ 두 배 부스터·🌪️ 돌풍은 지금 쓸 수 있어요.</p>
+    <div class="itemlog" id="i-log"></div>
+  </section>
+
+  <!-- 시상식 -->
+  <section class="screen" id="s-end">
+    <div class="topbar">
+      <span style="font-size:56px">🏆 시상식</span>
+      <span class="grow"></span>
+      <button class="btn white" id="e-csv1">📄 학생별 결과 CSV</button>
+      <button class="btn white" id="e-csv2">📄 문항별 결과 CSV</button>
+      <button class="btn" id="e-new">🔄 새 게임</button>
+    </div>
+    <div class="podium" id="e-podium"></div>
+    <div class="awards" id="e-awards"></div>
+  </section>
+
+  <div class="overlay" id="spurt-ov"><div class="spurt">🏁 결승 직전 스퍼트!</div><p style="font-size:50px">마지막 문제는 모두 점수 2배!</p></div>
+</div>
+
+<script type="module">
+import * as db from './js/db.js';
+import { generate, isCorrect, answerText, choiceText, TYPE_NAMES, rangeLabel, makeRng, hashSeed } from './js/questions.js';
+import { RULE, ITEMS, ITEM_KEYS, calcGain, maxScore, rankPlayers, toArr, grantItems, applyGusts, awards, avgTime, consumeItems } from './js/game.js';
+import { $, $$, esc, fmt, show, sfx, muteButton, toast, questionBodyHTML, markChoices, explainHTML, store, fitStage, downloadCSV, CHARS } from './js/common.js';
+
+fitStage($('#stage'), 1920, 1080);
+muteButton($('#mute'));
+
+const PASSWORD = '0520';
+let uid = null, code = null;
+let settings = store.get('pr_host_settings', null) || {
+  range: [5, 6], total: 10, limit: 20, itemsOn: true,
+  items: { booster: true, gust: true, umbrella: true, magnifier: true, timestop: true }
+};
+let st = {};            // rooms/{code}/state
+let players = {};       // rooms/{code}/players
+let scores = {};        // 교사 화면이 계산해서 쓰는 점수
+let questions = [];
+let qstats = {};
+let answersNow = {};
+let pauses = [];        // [{at, dur}] 이번 문제 일시정지 기록
+let pauseAt = 0;
+let revealing = false, phase = 'lock';
+let prevSnap = {};
+let unsubAns = null, unsubIntent = null;
+const R = () => 'rooms/' + code;
+
+// ---------------- 잠금 ----------------
+let typed = '';
+$('#lockpad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, '⌫', 0, '✔'].map(k => `<button data-k="${k}">${k}</button>`).join('');
+$$('#lockpad button').forEach(b => b.addEventListener('click', () => {
+  const k = b.dataset.k; sfx.tap();
+  if (k === '⌫') typed = typed.slice(0, -1);
+  else if (k === '✔') { /* 아래에서 확인 */ }
+  else if (typed.length < 4) typed += k;
+  $$('#dots i').forEach((d, i) => d.classList.toggle('on', i < typed.length));
+  if (typed.length === 4) {
+    if (typed === PASSWORD) { sessionStorage.setItem('pr_host_ok', '1'); boot(); }
+    else { $('#lock-msg').textContent = '비밀번호가 달라요'; typed = ''; setTimeout(() => $$('#dots i').forEach(d => d.classList.remove('on')), 200); sfx.wrong(); }
+  }
+}));
+if (sessionStorage.getItem('pr_host_ok') === '1') boot();
+
+// ---------------- 설정 ----------------
+function opt(el, items, isOn, onClick, check) {
+  el.innerHTML = items.map((it, i) => `<button class="opt ${check ? 'check' : ''} ${isOn(it) ? 'on' : ''}" data-i="${i}">${it.label}</button>`).join('');
+  $$('button', el).forEach(b => b.addEventListener('click', () => { sfx.tap(); onClick(items[+b.dataset.i]); paintSetup(); }));
+}
+function paintSetup() {
+  opt($('#o-range'), [5, 6, 7].map(v => ({ v, label: `${v}차시` })), it => settings.range.includes(it.v), it => {
+    const s = new Set(settings.range); s.has(it.v) ? s.delete(it.v) : s.add(it.v);
+    if (s.size) settings.range = [...s].sort();
+  }, true);
+  opt($('#o-total'), [5, 10, 15, 20].map(v => ({ v, label: `${v}문제` })), it => settings.total === it.v, it => { settings.total = it.v; });
+  opt($('#o-limit'), [10, 15, 20, 30].map(v => ({ v, label: `${v}초` })), it => settings.limit === it.v, it => { settings.limit = it.v; });
+  opt($('#o-itemson'), [{ v: true, label: '켜기' }, { v: false, label: '끄기' }], it => settings.itemsOn === it.v, it => { settings.itemsOn = it.v; });
+  opt($('#o-items'), ITEM_KEYS.map(k => ({ v: k, label: `${ITEMS[k].icon} ${ITEMS[k].name}` })), it => settings.items[it.v], it => { settings.items[it.v] = !settings.items[it.v]; }, true);
+  $('#o-items').style.opacity = settings.itemsOn ? 1 : .4;
+  store.set('pr_host_settings', settings);
+}
+const itemsEnabled = () => settings.itemsOn && ITEM_KEYS.some(k => settings.items[k]);
+const enabledMap = () => { const m = {}; ITEM_KEYS.forEach(k => { m[k] = settings.itemsOn && !!settings.items[k]; }); return m; };
+
+async function boot() {
+  show('s-setup'); phase = 'setup'; paintSetup();
+  try {
+    const info = await db.init();
+    uid = info.uid;
+    $('#mode-lab').textContent = info.mode === 'demo'
+      ? '⚠️ 체험 모드: js/firebase-config.js가 비어 있어서 이 브라우저 안에서만 연결돼요.'
+      : '✅ Firebase에 연결되었어요.';
+    const saved = store.get('pr_host_room', null);
+    if (saved) {
+      const meta = await db.get('rooms/' + saved + '/meta');
+      if (meta && meta.hostUid === uid) {
+        $('#resume').style.display = '';
+        $('#resume').textContent = `↩ 방 ${saved} 이어서 하기`;
+        $('#resume').onclick = () => { code = saved; enterRoom(true); };
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    $('#setup-msg').textContent = 'Firebase 연결에 실패했어요. README의 설정 단계를 확인해 주세요. (' + (e.code || e.message) + ')';
+  }
+}
+
+$('#make').addEventListener('click', async () => {
+  if (!uid) return;
+  $('#make').disabled = true;
+  try {
+    // 24시간 지난 방 정리
+    try {
+      const olds = await db.oldRooms(db.now() - 24 * 3600 * 1000);
+      for (const c of olds) await db.remove('rooms/' + c).catch(() => {});
+    } catch (e) { console.warn('정리 실패', e); }
+    let c = null;
+    for (let i = 0; i < 30; i++) {
+      const t = String(1000 + Math.floor(Math.random() * 9000));
+      if (!(await db.get('rooms/' + t + '/meta'))) { c = t; break; }
+    }
+    if (!c) throw new Error('방 코드를 만들지 못했어요');
+    code = c;
+    await db.set(R(), {
+      meta: { hostUid: uid, createdAt: db.TS },
+      state: { status: 'lobby', qIndex: -1, qKey: '-1', seed: newSeed(), settings, startedAt: 0, pauseTotal: 0, paused: false }
+    });
+    store.set('pr_host_room', code);
+    await enterRoom(false);
+  } catch (e) {
+    console.error(e);
+    $('#setup-msg').textContent = '방을 만들지 못했어요: ' + (e.code || e.message);
+  } finally { $('#make').disabled = false; }
+});
+const newSeed = () => Math.floor(Math.random() * 2147483647);
+
+// ---------------- 방 입장(새로 만들기·이어하기) ----------------
+let subscribed = false;
+async function enterRoom(resume) {
+  st = (await db.get(R() + '/state')) || {};
+  if (st.settings) settings = Object.assign(settings, st.settings, { range: toArr(st.settings.range).map(Number) });
+  scores = (await db.get(R() + '/scores')) || {};
+  for (const u in scores) scores[u].items = toArr(scores[u].items);
+  qstats = (await db.get(R() + '/qstats')) || {};
+  players = (await db.get(R() + '/players')) || {};
+  questions = generate(settings.range, settings.total, st.seed);
+  if (!subscribed) {
+    subscribed = true;
+    db.on(R() + '/state', v => { if (v) { st = v; } });
+    db.on(R() + '/players', v => { players = v || {}; onPlayers(); });
+  }
+  if (!resume || st.status === 'lobby') return renderLobby();
+  if (st.status === 'question' || st.status === 'spurt') { await startQuestion(st.qIndex, true); return; }
+  if (st.status === 'reveal' || st.status === 'race') { prevSnap = snapshot(); return renderRace(); }
+  if (st.status === 'item') return renderItem();
+  if (st.status === 'end') return renderEnd();
+}
+
+const blankScore = () => ({ score: 0, streak: 0, maxStreak: 0, correct: 0, answered: 0, timeSum: 0, correctTime: 0, items: [], worstRank: 0, rank: 0 });
+function onPlayers() {
+  const add = {};
+  for (const u in players) if (!scores[u]) { scores[u] = blankScore(); add['scores/' + u] = scores[u]; }
+  if (Object.keys(add).length) db.update(R(), add);
+  if (phase === 'lobby') renderLobby();
+  if (phase === 'question') paintAnswered();
+}
+const active = () => Object.keys(players).filter(u => scores[u]);
+
+// ---------------- 대기실 ----------------
+function renderLobby() {
+  phase = 'lobby'; show('s-lobby');
+  $('#l-code').textContent = code;
+  const base = location.href.replace(/host\.html.*$/, '');
+  $('#l-url').textContent = base.replace(/^https?:\/\//, '') + 'play.html';
+  $('#l-set').textContent = `범위 ${rangeLabel(settings.range)} · ${settings.total}문제 · ${settings.limit}초 · 아이템 ${itemsEnabled() ? '켜짐' : '꺼짐'}`;
+  const list = Object.entries(players).map(([u, p]) => ({ u, ...p })).sort((a, b) => a.num - b.num || a.joinedAt - b.joinedAt);
+  const cnt = {}; list.forEach(p => { cnt[p.num] = (cnt[p.num] || 0) + 1; });
+  const dups = Object.keys(cnt).filter(n => cnt[n] > 1);
+  $('#l-count').textContent = `${list.length}명 입장`;
+  $('#l-dup').textContent = dups.length ? `⚠️ 같은 번호가 있어요: ${dups.join(', ')}번` : ' ';
+  $('#l-start').disabled = list.length === 0;
+  $('#l-grid').innerHTML = list.map(p => `<div class="pcard ${cnt[p.num] > 1 ? 'dup' : ''}"><span class="em">${CHARS[p.char] || '🙂'}</span><span class="nm">${esc(p.name)}<small>${p.num}번</small></span><button class="kick" data-u="${p.u}">내보내기</button></div>`).join('');
+  $$('#l-grid .kick').forEach(b => b.addEventListener('click', () => kick(b.dataset.u)));
+}
+async function kick(u) {
+  const p = players[u]; if (!p) return;
+  if (!confirm(`${p.num}번 ${p.name} 학생을 내보낼까요?`)) return;
+  delete scores[u];
+  await db.update(R(), { ['players/' + u]: null, ['scores/' + u]: null });
+}
+$('#l-edit').addEventListener('click', () => {
+  phase = 'setup'; show('s-setup'); paintSetup();
+  $('#make').style.display = 'none'; $('#resume').style.display = 'none'; $('#apply').style.display = '';
+});
+$('#apply').addEventListener('click', async () => {
+  await db.update(R(), { 'state/settings': settings });
+  st.settings = settings;
+  questions = generate(settings.range, settings.total, st.seed);
+  $('#make').style.display = ''; $('#apply').style.display = 'none';
+  renderLobby();
+});
+$('#l-start').addEventListener('click', async () => {
+  questions = generate(settings.range, settings.total, st.seed);
+  sfx.start();
+  await startQuestion(0);
+});
+
+// ---------------- 문제 진행 ----------------
+let tickTimer = null;
+async function startQuestion(i, resume = false) {
+  revealing = false; pauses = []; answersNow = {};
+  const last = i === settings.total - 1;
+  if (!resume || st.status === 'spurt') {
+    if (last) {
+      await db.update(R(), { 'state/status': 'spurt', 'state/qIndex': i, 'state/qKey': String(i) });
+      $('#spurt-ov').classList.add('on'); sfx.fanfare();
+      await new Promise(r => setTimeout(r, 2800));
+      $('#spurt-ov').classList.remove('on');
+    }
+    await db.update(R(), { 'state/status': 'question', 'state/qIndex': i, 'state/qKey': String(i), 'state/startedAt': db.TS, 'state/pauseTotal': 0, 'state/paused': false });
+    st = (await db.get(R() + '/state')) || st;
+  }
+  phase = 'question';
+  const q = questions[i];
+  show('s-question');
+  $('#q-no').textContent = `${i + 1} / ${settings.total}`;
+  $('#q-lesson').textContent = `${q.lesson}차시 · ${TYPE_NAMES[q.type]}`;
+  $('#q-spurt').style.display = last ? '' : 'none';
+  $('#q-prompt').innerHTML = fmt(q.prompt);
+  $('#q-body').innerHTML = questionBodyHTML(q, { interactive: false });
+  $('#pause-ov').classList.remove('on');
+  if (unsubAns) unsubAns();
+  unsubAns = db.on(R() + '/answers/' + i, v => { answersNow = v || {}; paintAnswered(); });
+  clearInterval(tickTimer);
+  tickTimer = setInterval(tick, 200);
+  tick();
+}
+function paintAnswered() {
+  const act = active();
+  const n = act.filter(u => answersNow[u]).length;
+  $('#q-ans').textContent = n; $('#q-tot').textContent = act.length;
+  if (phase === 'question' && act.length > 0 && n >= act.length && !st.paused) setTimeout(() => { if (phase === 'question') reveal(); }, 700);
+}
+let lastSec = -1;
+function tick() {
+  if (phase !== 'question' || !st.startedAt) return;
+  const limit = settings.limit * 1000;
+  const el = st.paused ? (pauseAt - st.startedAt - (st.pauseTotal || 0)) : (db.now() - st.startedAt - (st.pauseTotal || 0));
+  const remain = Math.max(0, limit - el);
+  $('#q-timer i').style.width = (remain / limit * 100) + '%';
+  $('#q-timer').classList.toggle('low', remain < 5000);
+  const sec = Math.ceil(remain / 1000);
+  $('#q-sec').textContent = sec + '초';
+  if (sec !== lastSec && sec <= 5 && sec > 0 && !st.paused) sfx.tick();
+  lastSec = sec;
+  if (remain <= 0 && !st.paused) reveal();
+}
+$('#q-pause').addEventListener('click', async () => {
+  if (phase !== 'question' || st.paused) return;
+  pauseAt = db.now();
+  st.paused = true;
+  $('#pause-ov').classList.add('on');
+  await db.update(R(), { 'state/paused': true });
+});
+$('#q-resume').addEventListener('click', async () => {
+  const dur = db.now() - pauseAt;
+  pauses.push({ at: pauseAt, dur });
+  const total = (st.pauseTotal || 0) + dur;
+  st.paused = false; st.pauseTotal = total;
+  $('#pause-ov').classList.remove('on');
+  await db.update(R(), { 'state/paused': false, 'state/pauseTotal': total });
+});
+$('#q-skip').addEventListener('click', async () => {
+  if (phase !== 'question') return;
+  if (!confirm('이 문제를 건너뛸까요? (점수에 넣지 않아요)')) return;
+  phase = 'skip'; clearInterval(tickTimer);
+  const i = st.qIndex, q = questions[i];
+  qstats[i] = { type: q.type, lesson: q.lesson, skipped: true, correct: 0, answered: 0, total: active().length };
+  await db.update(R(), { ['qstats/' + i]: qstats[i] });
+  if (i + 1 < settings.total) startQuestion(i + 1); else finishGame();
+});
+$('#q-reveal').addEventListener('click', () => { if (phase === 'question') reveal(); });
+['#q-reset', '#r-reset', '#t-reset'].forEach(s => $(s).addEventListener('click', resetGame));
+
+function pauseBefore(t) { return pauses.filter(p => p.at < t).reduce((s, p) => s + p.dur, 0); }
+function rankedUids() {
+  return rankPlayers(active().map(u => ({ uid: u, num: players[u].num, ...scores[u] }))).map(p => p.uid);
+}
+function applyRanks() {
+  const order = rankedUids();
+  order.forEach((u, idx) => { scores[u].rank = idx + 1; scores[u].worstRank = Math.max(scores[u].worstRank || 0, idx + 1); });
+  return order;
+}
+function snapshot() {
+  const s = {};
+  for (const u in scores) s[u] = { score: scores[u].score || 0, rank: scores[u].rank || 0 };
+  return s;
+}
+
+async function reveal() {
+  if (revealing || phase !== 'question') return;
+  revealing = true; phase = 'reveal'; clearInterval(tickTimer);
+  const i = st.qIndex, q = questions[i];
+  const answers = (await db.get(R() + '/answers/' + i)) || {};
+  const intents = (await db.get(R() + '/intents/' + i)) || {};
+  const limitMs = settings.limit * 1000;
+  const spurt = i === settings.total - 1;
+  prevSnap = snapshot();
+  const counts = q.choices.map(() => 0);
+  let orderRight = 0, orderWrong = 0, nCorrect = 0, nAnswered = 0;
+  for (const u of active()) {
+    const s = scores[u], a = answers[u], it = intents[u] || {};
+    const used = consumeItems(s.items, it);
+    const booster = used.booster, timestop = used.timestop;
+    s.items = used.items;
+    let correct = false, elapsed = limitMs, valid = false;
+    if (a && typeof a.answeredAt === 'number') {
+      elapsed = Math.max(0, a.answeredAt - st.startedAt - pauseBefore(a.answeredAt));
+      if (elapsed <= limitMs + RULE.GRACE_MS) {
+        valid = true; elapsed = Math.min(elapsed, limitMs);
+        correct = isCorrect(q, a.choice);
+        nAnswered++;
+        if (q.kind === 'order') { correct ? orderRight++ : orderWrong++; }
+        else if (counts[+a.choice] != null) counts[+a.choice]++;
+      }
+    }
+    const g = calcGain({ correct, elapsedMs: elapsed, limitMs, streakBefore: s.streak || 0, booster, timestop, spurt });
+    s.score = (s.score || 0) + g.gained;
+    s.streak = g.streak; s.maxStreak = Math.max(s.maxStreak || 0, g.streak);
+    if (valid) { s.answered = (s.answered || 0) + 1; s.timeSum = (s.timeSum || 0) + elapsed; }
+    if (correct) { nCorrect++; s.correct = (s.correct || 0) + 1; s.correctTime = (s.correctTime || 0) + elapsed; }
+    s.last = { q: i, correct, answered: valid, gained: g.gained, speed: g.speed, streakBonus: g.streakBonus, mult: g.mult, booster, timestop, spurt, choice: a ? String(a.choice) : '' };
+  }
+  applyRanks();
+  qstats[i] = { type: q.type, lesson: q.lesson, correct: nCorrect, answered: nAnswered, total: active().length };
+  await db.update(R(), { scores, ['qstats/' + i]: qstats[i], 'state/status': 'reveal' });
+  nCorrect ? sfx.correct() : sfx.wrong();
+
+  // 화면
+  show('s-reveal');
+  $('#r-no').textContent = `${i + 1} / ${settings.total}`;
+  $('#r-lesson').textContent = `${q.lesson}차시 · ${TYPE_NAMES[q.type]}`;
+  $('#r-prompt').innerHTML = fmt(q.prompt);
+  $('#r-body').innerHTML = questionBodyHTML(q, { interactive: false });
+  markChoices($('#r-body'), q, null);
+  $('#r-exp').innerHTML = explainHTML(q);
+  $('#r-ans').innerHTML = fmt(answerText(q));
+  $('#r-sum').innerHTML = `정답 <b>${nCorrect}</b>명 / 답한 학생 ${nAnswered}명`;
+  let bars;
+  if (q.kind === 'order') bars = [{ l: '정답 순서', n: orderRight, ok: true }, { l: '다른 순서', n: orderWrong, ok: false }];
+  else bars = q.choices.map((c, k) => ({ l: fmt(choiceText(c)), n: counts[k], ok: k === q.answer }));
+  const mx = Math.max(1, ...bars.map(b => b.n));
+  $('#r-bars').innerHTML = bars.map(b => `<div class="bar ${b.ok ? 'right' : ''}"><div class="bl">${b.ok ? '✅ ' : ''}${b.l}</div><div class="bt"><i style="width:0"></i></div><div class="bn">${b.n}명</div></div>`).join('');
+  requestAnimationFrame(() => setTimeout(() => $$('#r-bars .bt i').forEach((el, k) => { el.style.width = (bars[k].n / mx * 100) + '%'; }), 50));
+}
+
+$('#r-race').addEventListener('click', async () => {
+  await db.update(R(), { 'state/status': 'race' });
+  renderRace();
+});
+
+// ---------------- 달리기 트랙 ----------------
+function renderRace() {
+  phase = 'race'; show('s-race');
+  const i = st.qIndex;
+  const last = i + 1 >= settings.total;
+  $('#t-no').textContent = `${i + 1} / ${settings.total} 끝`;
+  const itemNow = itemsEnabled() && (i + 1) % RULE.ITEM_EVERY === 0 && !last;
+  $('#t-next').textContent = last ? '🏆 시상식' : itemNow ? '🎁 아이템 타임' : '다음 문제 ▶';
+  $('#t-next').onclick = async () => {
+    $('#t-next').onclick = null;
+    if (last) finishGame(); else if (itemNow) startItem(); else startQuestion(i + 1);
+  };
+  drawTrack(prevSnap);
+}
+function drawTrack(prev) {
+  const track = $('#track');
+  const list = active().map(u => ({ u, ...players[u], s: scores[u] })).sort((a, b) => a.num - b.num || a.joinedAt - b.joinedAt);
+  const H = track.clientHeight, W = track.clientWidth;
+  const n = Math.max(1, list.length);
+  const laneH = Math.min(130, Math.floor(H / n));
+  const fs = Math.max(13, Math.min(34, Math.floor(laneH * 0.42)));
+  const em = Math.floor(laneH * 0.78);
+  const finish = maxScore(settings.total);
+  const plateW = Math.min(360, fs * 11);
+  const startX = plateW + 16, endX = W - 120 - em;
+  const xOf = (sc) => startX + Math.min(1.02, (sc || 0) / finish) * (endX - startX);
+  track.innerHTML = `<div class="finish"></div><div class="finish-lab">🏁</div>` + list.map((p, k) =>
+    `<div class="lane" style="top:${k * laneH}px;height:${laneH}px;font-size:${fs}px"><div class="plate" style="width:${plateW}px"><span class="rk">${p.s.rank || '-'}등</span><span class="pn">${p.num} ${esc(p.name)}</span></div>` +
+    `<div class="runner" data-u="${p.u}" style="left:${xOf(prev[p.u] ? prev[p.u].score : 0)}px"><span class="em" style="font-size:${em}px">${CHARS[p.char] || '🙂'}</span>` +
+    `<span class="tag">${p.s.score}점</span>${(p.s.streak || 0) >= RULE.STREAK_FROM ? `<span class="fire">🔥${p.s.streak}</span>` : ''}</div></div>`).join('');
+  track.offsetWidth; // 다시 그리기
+  setTimeout(() => {
+    $$('.runner', track).forEach(r => {
+      const u = r.dataset.u, s = scores[u];
+      r.classList.add('moving');
+      r.style.left = xOf(s.score) + 'px';
+      if (prev[u] && prev[u].rank && s.rank < prev[u].rank) r.classList.add('pass');
+      setTimeout(() => r.classList.remove('moving'), 2300);
+    });
+    sfx.start();
+  }, 120);
+}
+
+// ---------------- 아이템 타임 ----------------
+async function startItem() {
+  const i = st.qIndex, slot = String(i + 1);
+  const ranking = rankedUids();
+  const rng = makeRng(hashSeed(st.seed + ':item:' + i));
+  const gifts = grantItems(scores, ranking, rng, enabledMap());
+  for (const u of ranking) scores[u].gift = { slot, item: gifts[u] || '' };
+  await db.update(R(), { scores, 'state/status': 'item', 'state/itemSlot': slot, 'state/itemDone': false });
+  Object.assign(st, { status: 'item', itemSlot: slot, itemDone: false });
+  sfx.item();
+  renderItem();
+}
+function renderItem() {
+  phase = 'item'; show('s-item');
+  const slot = st.itemSlot;
+  $('#i-done').style.display = st.itemDone ? 'none' : '';
+  $('#i-next').style.display = st.itemDone ? '' : 'none';
+  $('#i-next').textContent = (+slot + 1 >= settings.total + 1) ? '🏆 시상식' : '다음 문제 ▶';
+  paintItemLog({});
+  if (unsubIntent) unsubIntent();
+  unsubIntent = db.on(R() + '/intents/' + slot, v => {
+    const x = v || {};
+    const n = Object.keys(x).filter(u => x[u].booster || x[u].gust).length;
+    $('#i-used').textContent = `사용 ${n}명`;
+    if (!st.itemDone) paintItemLog(x);
+  });
+}
+function paintItemLog(intents) {
+  const list = active().map(u => ({ u, ...players[u], s: scores[u] })).sort((a, b) => a.s.rank - b.s.rank);
+  $('#i-log').innerHTML = list.map(p => {
+    const used = intents[p.u] ? Object.keys(intents[p.u]).filter(k => k === 'booster' || k === 'gust').map(k => ITEMS[k].icon).join('') : '';
+    const gift = p.s.gift && p.s.gift.slot === st.itemSlot;
+    return `<div class="pcard"><span class="em">${CHARS[p.char]}</span><span class="nm">${p.num} ${esc(p.name)}<small>${p.s.rank}등 · ${p.s.score}점</small></span>` +
+      `<span style="font-size:36px">${gift ? '🎁' : ''}${used ? ' ✔' + used : ''}</span></div>`;
+  }).join('');
+}
+$('#i-done').addEventListener('click', async () => {
+  $('#i-done').disabled = true;
+  try {
+    const slot = st.itemSlot;
+    const intents = (await db.get(R() + '/intents/' + slot)) || {};
+    const users = Object.keys(intents).filter(u => intents[u].gust && scores[u]).sort((a, b) => intents[a].gust.at - intents[b].gust.at);
+    const ranking = rankedUids();
+    const rng = makeRng(hashSeed(st.seed + ':gust:' + slot));
+    const events = applyGusts(scores, ranking, users, rng, enabledMap());
+    applyRanks();
+    const upd = { scores, 'state/itemDone': true };
+    events.forEach((ev, k) => {
+      upd['events/' + slot + '_' + k] = { ...ev, to: ev.to || '', item: ev.item || '', fromNum: players[ev.from] ? players[ev.from].num : 0, toNum: ev.to && players[ev.to] ? players[ev.to].num : 0, at: db.TS };
+    });
+    await db.update(R(), upd);
+    st.itemDone = true;
+    if (events.some(e => e.type === 'gust')) sfx.gust();
+    $('#i-done').style.display = 'none'; $('#i-next').style.display = '';
+    $('#i-help').textContent = events.length ? '🌪️ 돌풍 결과' : '이번에는 돌풍이 없었어요.';
+    const nm = u => players[u] ? `${players[u].num}번 ${esc(players[u].name)}` : '?';
+    const cs = 'style="font-size:44px;padding:14px 26px"';
+    $('#i-log').innerHTML = `<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:16px">` + (events.map(ev => ev.type === 'swap'
+      ? `<div class="pcard" ${cs}>🔄 ${nm(ev.from)}: 1등이라 돌풍 대신 ${ev.item ? ITEMS[ev.item].icon + ' ' + ITEMS[ev.item].name : '없음'}</div>`
+      : `<div class="pcard" ${cs}>🌪️ ${nm(ev.from)} → ${nm(ev.to)} : ${ev.blocked ? '☂️ 막았다!' : `${ev.amount}점 가져옴`}</div>`).join('') || `<div class="pcard" ${cs}>🍃 조용한 바람</div>`) + `</div>`;
+  } finally { $('#i-done').disabled = false; }
+});
+$('#i-next').addEventListener('click', () => {
+  const nxt = st.qIndex + 1;
+  if (nxt < settings.total) startQuestion(nxt); else finishGame();
+});
+
+// ---------------- 시상식 ----------------
+async function finishGame() {
+  clearInterval(tickTimer);
+  applyRanks();
+  const aw = computeAwards();
+  await db.update(R(), { scores, 'state/status': 'end', 'state/awards': aw });
+  st.awards = aw;
+  renderEnd();
+}
+function statList() {
+  return active().map(u => ({ uid: u, num: players[u].num, name: players[u].name, char: players[u].char, ...scores[u] })).sort((a, b) => a.rank - b.rank);
+}
+function computeAwards() {
+  const a = awards(statList());
+  const o = {};
+  for (const k in a) o[k] = a[k];
+  return o;
+}
+function renderEnd() {
+  phase = 'end'; show('s-end'); sfx.fanfare();
+  const list = statList();
+  const pod = [list[1], list[0], list[2]];
+  $('#e-podium').innerHTML = pod.map((p, k) => {
+    if (!p) return '<div class="pod"></div>';
+    const place = [2, 1, 3][k];
+    return `<div class="pod p${place}"><span class="em">${CHARS[p.char]}</span><span class="nm">${p.num} ${esc(p.name)}</span><span class="sc">${p.score}점</span><div class="blk">${place}</div></div>`;
+  }).join('');
+  const aw = st.awards || computeAwards();
+  const who = (x) => { const p = x && list.find(s => s.uid === x.uid); return p ? `<div class="em">${CHARS[p.char]}</div>${p.num} ${esc(p.name)}` : '<div class="em">🙂</div>이번엔 없어요'; };
+  $('#e-awards').innerHTML =
+    `<div class="award"><div class="t">⚡ 가장 빠른 손</div>${who(aw.fastest)}${aw.fastest ? `<div class="sub">정답 평균 ${(aw.fastest.value / 1000).toFixed(1)}초</div>` : ''}</div>` +
+    `<div class="award"><div class="t">🔥 연속 정답왕</div>${who(aw.streak)}${aw.streak ? `<div class="sub">${aw.streak.value}문제 연속 정답</div>` : ''}</div>` +
+    `<div class="award"><div class="t">🚀 역전의 주인공</div>${who(aw.comeback)}${aw.comeback ? `<div class="sub">${aw.comeback.value}계단 올라왔어요</div>` : ''}</div>`;
+}
+$('#e-csv1').addEventListener('click', () => {
+  const rows = [['순위', '번호', '이름', '점수', '정답 수', '평균 응답 시간(초)', '최대 연속 정답']];
+  statList().sort((a, b) => a.num - b.num).forEach(p => rows.push([p.rank, p.num, p.name, p.score, p.correct || 0, p.answered ? (avgTime(p) / 1000).toFixed(1) : '', p.maxStreak || 0]));
+  downloadCSV(`가능성레이스_학생별_${code}.csv`, rows);
+});
+$('#e-csv2').addEventListener('click', () => {
+  const rows = [['문항', '차시', '유형', '문제', '정답', '정답 수', '답한 학생', '참가 학생', '정답률(%)']];
+  questions.forEach((q, i) => {
+    const s = qstats[i] || {};
+    rows.push([i + 1, q.lesson, `${q.type} ${TYPE_NAMES[q.type]}`, q.prompt, answerText(q).replace('1/2', '1/2'), s.skipped ? '건너뜀' : (s.correct || 0), s.answered || 0, s.total || 0, s.total ? Math.round((s.correct || 0) / s.total * 100) : '']);
+  });
+  downloadCSV(`가능성레이스_문항별_${code}.csv`, rows);
+});
+$('#e-new').addEventListener('click', resetGame);
+
+// ---------------- 게임 초기화 ----------------
+async function resetGame() {
+  if (!confirm('게임을 처음으로 되돌릴까요? 점수가 모두 0이 되고, 학생들은 대기실로 돌아가요.')) return;
+  clearInterval(tickTimer);
+  if (unsubAns) { unsubAns(); unsubAns = null; }
+  if (unsubIntent) { unsubIntent(); unsubIntent = null; }
+  for (const u in scores) scores[u] = blankScore();
+  qstats = {};
+  const seed = newSeed();
+  await db.update(R(), {
+    scores, answers: null, intents: null, events: null, qstats: null,
+    state: { status: 'lobby', qIndex: -1, qKey: '-1', seed, settings, startedAt: 0, pauseTotal: 0, paused: false }
+  });
+  st = (await db.get(R() + '/state')) || st;
+  questions = generate(settings.range, settings.total, seed);
+  renderLobby();
+}
+
+window.addEventListener('resize', () => { if (phase === 'race') drawTrack(snapshot()); });
+</script>
+</body>
+</html>

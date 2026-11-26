@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>가능성 레이스 · 참가</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="stage">
+  <button class="iconbtn" id="mute" style="right:20px;top:16px"></button>
+  <span class="pill" id="net" style="position:absolute;left:20px;bottom:14px;z-index:30;display:none;background:#ffe3e3;border-color:#ff8787">📡 연결이 끊겼어요… 다시 연결 중</span>
+
+  <section class="screen active center" id="s-loading"><h2>불러오는 중… <span class="bounce">🏃</span></h2><p class="warn" id="load-msg"></p></section>
+
+  <!-- 1. 방 코드 -->
+  <section class="screen center" id="s-code">
+    <h2>🚪 방 코드 4자리를 눌러요</h2>
+    <input class="field codebox" id="code" readonly placeholder="----">
+    <div class="keypad" id="codepad"></div>
+    <p class="warn" id="code-msg">&nbsp;</p>
+    <a href="index.html" class="sub" style="font-size:22px">← 처음으로</a>
+  </section>
+
+  <!-- 2. 번호 -->
+  <section class="screen center" id="s-num">
+    <h2>🔢 내 번호를 눌러요</h2>
+    <div class="numgrid" id="nums"></div>
+    <button class="btn white sm" data-back="s-code">← 뒤로</button>
+  </section>
+
+  <!-- 3. 이름 -->
+  <section class="screen center" id="s-name">
+    <h2>✏️ 내 이름을 써요</h2>
+    <p class="sub" id="name-num" style="font-size:28px"></p>
+    <input class="field" id="name" maxlength="8" placeholder="이름" autocomplete="off" style="width:460px">
+    <div class="row" style="margin-top:22px">
+      <button class="btn white" data-back="s-num">← 뒤로</button>
+      <button class="btn" id="name-ok" disabled>다음 ▶</button>
+    </div>
+  </section>
+
+  <!-- 4. 캐릭터 -->
+  <section class="screen center" id="s-char">
+    <h2>🐾 같이 달릴 친구를 골라요</h2>
+    <div class="chargrid" id="chars"></div>
+    <div class="row">
+      <button class="btn white" data-back="s-name">← 뒤로</button>
+      <button class="btn green" id="join" disabled>🏁 입장하기</button>
+    </div>
+    <p class="warn" id="join-msg">&nbsp;</p>
+  </section>
+
+  <!-- 대기 -->
+  <section class="screen center" id="s-wait">
+    <div class="mychar bounce" id="w-char">🐶</div>
+    <h2 id="w-name"></h2>
+    <p style="font-size:40px" id="w-msg">선생님이 시작하면 출발해요!</p>
+    <div class="rankbox" id="w-rank"></div>
+  </section>
+
+  <!-- 문제 -->
+  <section class="screen" id="s-q">
+    <div class="topbar" style="padding-right:76px">
+      <span class="pill" id="q-no">1 / 10</span>
+      <div class="timer" id="q-timer"><i></i></div>
+      <span class="pill" id="q-sec">20초</span>
+      <span class="pill hot" id="q-me">0점 · -등</span>
+    </div>
+    <div class="prompt" id="q-prompt"></div>
+    <div id="q-body" style="flex:1;display:flex;flex-direction:column;min-height:0;position:relative"></div>
+    <div class="itembar" id="q-items"></div>
+    <div class="overlay" id="q-done" style="background:rgba(255,247,230,.82)"><div class="spurt" style="font-size:70px">✅ 제출 완료!</div><p style="font-size:40px">기다려요… <span class="bounce">⏳</span></p></div>
+    <div class="overlay" id="q-pause"><div class="spurt" style="font-size:80px">⏸ 잠깐 멈췄어요</div><p style="font-size:34px">선생님을 봐요</p></div>
+  </section>
+
+  <!-- 결과 -->
+  <section class="screen center" id="s-res">
+    <div class="result-big" id="r-title"></div>
+    <div style="font-size:30px" id="r-detail"></div>
+    <div id="r-exp" style="width:100%;max-width:1040px;margin:12px 0"></div>
+    <div class="rankbox" id="r-rank"></div>
+    <div class="itembar" id="r-items" style="justify-content:center"></div>
+  </section>
+
+  <!-- 아이템 타임 -->
+  <section class="screen center" id="s-item">
+    <h2 style="font-size:52px">🎁 아이템 상자!</h2>
+    <div style="font-size:40px" id="it-gift"></div>
+    <div class="rankbox" id="it-rank"></div>
+    <div class="row" id="it-list" style="gap:24px;margin-top:10px"></div>
+    <p class="sub" id="it-help" style="font-size:24px;margin-top:16px"></p>
+  </section>
+
+  <!-- 끝 -->
+  <section class="screen center" id="s-end">
+    <div class="mychar bounce" id="e-char">🐶</div>
+    <h2 id="e-title" style="font-size:56px"></h2>
+    <div style="font-size:36px" id="e-score"></div>
+    <div style="font-size:34px;margin-top:12px" id="e-awards"></div>
+    <p style="font-size:30px;margin-top:20px">수고했어요! 🎉</p>
+  </section>
+
+  <!-- 내보내짐 -->
+  <section class="screen center" id="s-kicked">
+    <h2>🙋 선생님이 자리를 정리했어요</h2>
+    <p style="font-size:30px">번호를 확인하고 다시 들어와요.</p>
+    <button class="btn" id="rejoin" style="margin-top:20px">다시 들어가기</button>
+  </section>
+
+  <div class="overlay" id="spurt-ov"><div class="spurt">🏁 결승 직전 스퍼트!</div><p style="font-size:40px">마지막 문제는 점수 2배!</p></div>
+</div>
+
+<script type="module">
+import * as db from './js/db.js';
+import { generate, isCorrect, answerText, makeRng, hashSeed } from './js/questions.js';
+import { ITEMS, toArr, magnifierOK, magnifierRemove, RULE } from './js/game.js';
+import { $, $$, esc, fmt, show, sfx, muteButton, toast, mountChoices, markChoices, explainHTML, store, fitStage, CHARS, CHAR_NAMES, eulReul } from './js/common.js';
+
+fitStage($('#stage'), 1200, 750);
+muteButton($('#mute'));
+
+// 같은 기기 복귀용 저장소 (체험 모드는 탭마다 따로)
+const jstore = db.isDemo
+  ? { get: (k) => { try { return JSON.parse(sessionStorage.getItem(k)); } catch (e) { return null; } }, set: (k, v) => { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }, del: (k) => { try { sessionStorage.removeItem(k); } catch (e) {} } }
+  : store;
+
+let uid = null, code = '', num = 0, name = '', ch = -1;
+let st = {}, me = null, scores = {}, myScore = null, joined = false;
+let questions = [], qSeed = null;
+let curQ = -1, ctl = null, answered = false, myIntents = {}, tickT = null;
+const R = () => 'rooms/' + code;
+const unsubs = [];
+
+// ---------------- 입장 단계 ----------------
+$('#codepad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, '⌫', 0, '확인'].map(k => `<button data-k="${k}">${k}</button>`).join('');
+$$('#codepad button').forEach(b => b.addEventListener('click', () => {
+  const k = b.dataset.k; sfx.tap();
+  const el = $('#code');
+  if (k === '⌫') el.value = el.value.slice(0, -1);
+  else if (k === '확인') checkCode();
+  else if (el.value.length < 4) { el.value += k; if (el.value.length === 4) checkCode(); }
+}));
+async function checkCode() {
+  const c = $('#code').value;
+  if (c.length !== 4) { $('#code-msg').textContent = '4자리를 모두 눌러요'; return; }
+  $('#code-msg').textContent = '확인 중…';
+  try {
+    const meta = await db.get('rooms/' + c + '/meta');
+    if (!meta) { $('#code-msg').textContent = '그런 방이 없어요. 다시 확인해요!'; sfx.wrong(); return; }
+    code = c; $('#code-msg').innerHTML = '&nbsp;';
+    show('s-num');
+  } catch (e) { $('#code-msg').textContent = '연결이 안 돼요: ' + (e.code || e.message); }
+}
+$('#nums').innerHTML = Array.from({ length: 30 }, (_, i) => `<button data-n="${i + 1}">${i + 1}</button>`).join('');
+$$('#nums button').forEach(b => b.addEventListener('click', () => {
+  num = +b.dataset.n; sfx.tap();
+  $$('#nums button').forEach(x => x.classList.toggle('on', x === b));
+  $('#name-num').textContent = `${num}번`;
+  show('s-name'); setTimeout(() => $('#name').focus(), 100);
+}));
+$('#name').addEventListener('input', () => { $('#name-ok').disabled = !$('#name').value.trim(); });
+$('#name').addEventListener('keydown', (e) => { if (e.key === 'Enter' && $('#name').value.trim()) $('#name-ok').click(); });
+$('#name-ok').addEventListener('click', () => { name = $('#name').value.trim().slice(0, 8); $('#name').blur(); show('s-char'); });
+$('#chars').innerHTML = CHARS.map((c, i) => `<button data-c="${i}">${c}<small>${CHAR_NAMES[i]}</small></button>`).join('');
+$$('#chars button').forEach(b => b.addEventListener('click', () => {
+  ch = +b.dataset.c; sfx.tap();
+  $$('#chars button').forEach(x => x.classList.toggle('on', x === b));
+  $('#join').disabled = false;
+}));
+$$('[data-back]').forEach(b => b.addEventListener('click', () => { sfx.tap(); show(b.dataset.back); }));
+$('#join').addEventListener('click', async () => {
+  $('#join').disabled = true;
+  try {
+    await db.set(R() + '/players/' + uid, { num, name, char: ch, joinedAt: db.TS });
+    jstore.set('pr_join', { code, uid });
+    sfx.start();
+    enterGame();
+  } catch (e) {
+    $('#join-msg').textContent = '입장하지 못했어요: ' + (e.code || e.message);
+    $('#join').disabled = false;
+  }
+});
+$('#rejoin').addEventListener('click', () => { $('#code').value = code; show('s-num'); });
+
+// ---------------- 시작 ----------------
+(async function start() {
+  try {
+    const info = await db.init();
+    uid = info.uid;
+    db.onConnection(ok => { $('#net').style.display = ok || !joined ? 'none' : ''; });
+    const saved = jstore.get('pr_join');
+    if (saved && saved.uid === uid) {
+      const p = await db.get('rooms/' + saved.code + '/players/' + uid);
+      if (p) { code = saved.code; num = p.num; name = p.name; ch = p.char; return enterGame(); }
+      jstore.del('pr_join');
+    }
+    const urlCode = new URLSearchParams(location.search).get('code');
+    if (urlCode) $('#code').value = urlCode.slice(0, 4);
+    show('s-code');
+  } catch (e) {
+    console.error(e);
+    $('#load-msg').textContent = '연결하지 못했어요. 선생님께 알려 주세요. (' + (e.code || e.message) + ')';
+  }
+})();
+
+function enterGame() {
+  joined = true;
+  unsubs.forEach(u => u()); unsubs.length = 0;
+  let seen = null;
+  unsubs.push(db.on(R() + '/players/' + uid, v => {
+    if (v) { me = v; num = v.num; name = v.name; ch = v.char; render(); }
+    else if (me) { kicked(); }
+  }));
+  unsubs.push(db.on(R() + '/state', v => { st = v || {}; render(); }));
+  unsubs.push(db.on(R() + '/scores', v => {
+    const before = myScore;
+    scores = v || {}; myScore = scores[uid] || null;
+    if (myScore) myScore.items = toArr(myScore.items);
+    paintMe();
+    if (st.status !== 'question') render();
+  }));
+  unsubs.push(db.on(R() + '/events', v => {
+    const evs = v || {};
+    if (seen === null) { seen = new Set(Object.keys(evs)); return; }
+    for (const k of Object.keys(evs)) {
+      if (seen.has(k)) continue;
+      seen.add(k);
+      const e = evs[k];
+      if (e.type === 'gust' && e.to === uid) {
+        if (e.blocked) { toast(`☂️ 막았다! (${e.fromNum}번 친구의 돌풍)`, 3500, 'safe'); sfx.item(); }
+        else { toast(`🌪️ ${e.fromNum}번 친구의 돌풍! -${e.amount}점`, 3500, 'gust'); sfx.gust(); }
+      } else if (e.type === 'gust' && e.from === uid) {
+        if (e.blocked) toast(`☂️ ${e.toNum}번 친구가 우산으로 막았어요`, 3500, 'safe');
+        else { toast(`🌪️ 돌풍 성공! +${e.amount}점`, 3500, 'gust'); sfx.gust(); }
+      } else if (e.type === 'swap' && e.from === uid) {
+        toast(e.item ? `🔄 1등은 돌풍을 못 써요 → ${ITEMS[e.item].icon} ${ITEMS[e.item].name}${eulReul(ITEMS[e.item].name)} 받았어요` : '🔄 1등은 돌풍을 못 써요', 4000, 'gift');
+      }
+    }
+  }));
+}
+function kicked() {
+  joined = false; me = null;
+  unsubs.forEach(u => u()); unsubs.length = 0;
+  clearInterval(tickT);
+  jstore.del('pr_join');
+  show('s-kicked');
+}
+
+function ensureQuestions() {
+  const key = st.settings ? st.seed + '|' + toArr(st.settings.range).join(',') + '|' + st.settings.total : null;
+  if (st.seed != null && key !== qSeed && st.settings) {
+    qSeed = key;
+    questions = generate(toArr(st.settings.range).map(Number), st.settings.total, st.seed);
+  }
+}
+const total = () => (st.settings ? st.settings.total : 0);
+const rankText = () => myScore && myScore.rank ? `${myScore.rank}등` : '-등';
+function paintMe() {
+  const s = myScore ? myScore.score : 0;
+  $('#q-me').textContent = `${s}점 · ${rankText()}`;
+  const box = `<span class="pill hot">⭐ ${s}점</span><span class="pill">🏃 ${rankText()}</span>` + (myScore && myScore.streak >= RULE.STREAK_FROM ? `<span class="pill">🔥 ${myScore.streak}연속</span>` : '');
+  ['#w-rank', '#r-rank', '#it-rank'].forEach(id => { $(id).innerHTML = box; });
+}
+
+// ---------------- 상태별 화면 ----------------
+function render() {
+  if (!me || !st.status) return;
+  ensureQuestions();
+  $('#spurt-ov').classList.toggle('on', st.status === 'spurt');
+  const s = st.status;
+  if (s !== 'question') { clearInterval(tickT); }
+  if (s === 'lobby') {
+    curQ = -1;
+    $('#w-char').textContent = CHARS[ch]; $('#w-name').textContent = `${num}번 ${name}`;
+    $('#w-msg').textContent = '선생님이 시작하면 출발해요!';
+    paintMe(); show('s-wait');
+  } else if (s === 'spurt') {
+    show('s-wait'); $('#w-msg').textContent = '곧 마지막 문제!';
+  } else if (s === 'question') {
+    if (curQ !== st.qIndex) openQuestion(st.qIndex);
+    $('#q-pause').classList.toggle('on', !!st.paused);
+  } else if (s === 'reveal' || s === 'race') {
+    showResult();
+  } else if (s === 'item') {
+    showItem();
+  } else if (s === 'end') {
+    showEnd();
+  }
+}
+
+async function openQuestion(i) {
+  curQ = i; answered = false; myIntents = {};
+  const q = questions[i];
+  if (!q) return;
+  show('s-q');
+  $('#q-no').textContent = `${i + 1} / ${total()}` + (i === total() - 1 ? ' 🏁×2' : '');
+  $('#q-prompt').innerHTML = fmt(q.prompt);
+  $('#q-done').classList.remove('on');
+  $('#q-body').innerHTML = '';
+  const [ans, intents] = await Promise.all([db.get(R() + '/answers/' + i + '/' + uid), db.get(R() + '/intents/' + i + '/' + uid)]);
+  if (curQ !== i) return;
+  myIntents = intents || {};
+  ctl = mountChoices($('#q-body'), q, (choice) => submit(i, choice));
+  if (myIntents.magnifier) ctl.remove(magnifierRemove(q, makeRng(hashSeed(st.seed + ':mag:' + i))));
+  if (ans) { answered = true; ctl.lock(); $('#q-done').classList.add('on'); }
+  paintQItems();
+  clearInterval(tickT);
+  tickT = setInterval(qTick, 200); qTick();
+}
+let lastSec = -1;
+function qTick() {
+  if (st.status !== 'question' || !st.startedAt) return;
+  const limit = st.settings.limit * 1000;
+  if (st.paused) return;
+  const el = db.now() - st.startedAt - (st.pauseTotal || 0);
+  const remain = Math.max(0, limit - el);
+  $('#q-timer i').style.width = (remain / limit * 100) + '%';
+  $('#q-timer').classList.toggle('low', remain < 5000);
+  const sec = Math.ceil(remain / 1000);
+  $('#q-sec').textContent = sec + '초';
+  if (sec !== lastSec && sec <= 3 && sec > 0) sfx.tick();
+  lastSec = sec;
+  // 시간이 끝나면 화면을 덮어서 못 누르게 함 (잠깐 잘못된 시각을 받아도 다시 열 수 있게 잠그지는 않음)
+  if (!answered) {
+    const over = remain <= 0;
+    $('#q-done').classList.toggle('on', over);
+    if (over) $('#q-done .spurt').textContent = '⏰ 시간 끝!';
+  }
+}
+function timeLeft() {
+  if (!st.startedAt || !st.settings) return 1;
+  return st.settings.limit * 1000 - (db.now() - st.startedAt - (st.pauseTotal || 0));
+}
+async function submit(i, choice) {
+  if (answered || st.paused || timeLeft() <= 0) { if (!answered) openQuestion(i); return; }
+  answered = true;
+  $('#q-done .spurt').textContent = '✅ 제출 완료!';
+  $('#q-done').classList.add('on');
+  paintQItems();
+  try {
+    await db.set(R() + '/answers/' + i + '/' + uid, { choice: String(choice), answeredAt: db.TS });
+  } catch (e) {
+    $('#q-done .spurt').textContent = '⏰ 시간이 끝났어요';
+  }
+}
+
+// 아이템 칸 (문제 화면)
+function ownedItems() { return myScore ? toArr(myScore.items) : []; }
+function paintQItems() {
+  const q = questions[curQ];
+  const items = ownedItems();
+  const slots = [0, 1].map(k => {
+    const it = items[k];
+    if (!it) return `<div class="itemslot empty">빈 칸</div>`;
+    const I = ITEMS[it];
+    let cls = 'off', note = '';
+    if (it === 'magnifier') { if (myIntents.magnifier) { cls = 'used'; note = '사용함'; } else if (magnifierOK(q) && !answered) cls = 'can'; else note = '이 문제는 못 써요'; }
+    else if (it === 'timestop') { if (myIntents.timestop) { cls = 'used'; note = '사용함'; } else if (!answered) cls = 'can'; }
+    else if (it === 'booster') { if (myIntents.booster) { cls = 'used'; note = '이번 문제 2배!'; } else note = '문제 전에 써요'; }
+    else if (it === 'gust') note = '아이템 타임에';
+    else if (it === 'umbrella') note = '자동으로 막아요';
+    return `<div class="itemslot ${cls}" data-it="${it}"><span class="ic">${I.icon}</span>${I.name}${note ? `<small class="sub" style="font-size:18px">· ${note}</small>` : ''}</div>`;
+  }).join('');
+  $('#q-items').innerHTML = `<span class="lab">내 아이템</span>${slots}`;
+  $$('#q-items .itemslot.can').forEach(el => el.addEventListener('click', () => useQItem(el.dataset.it)));
+}
+async function useQItem(it) {
+  const i = curQ, q = questions[i];
+  if (answered || myIntents[it]) return;
+  myIntents[it] = true; sfx.item();
+  paintQItems();
+  try { await db.set(`${R()}/intents/${i}/${uid}/${it}`, { at: db.TS }); } catch (e) { /* 이미 사용 */ }
+  if (it === 'magnifier') ctl.remove(magnifierRemove(q, makeRng(hashSeed(st.seed + ':mag:' + i))));
+  if (it === 'timestop') toast('⏱️ 시간 정지! 맞히면 속도 보너스 최대!', 2200, 'gift');
+}
+
+// 문제 사이(정답 공개·달리기·아이템 타임)에 쓰는 아이템
+async function useBetween(it) {
+  const slot = String((st.qIndex || 0) + 1);
+  const cur = (await db.get(`${R()}/intents/${slot}/${uid}`)) || {};
+  if (cur[it]) return;
+  try {
+    await db.set(`${R()}/intents/${slot}/${uid}/${it}`, { at: db.TS });
+    sfx.item();
+    toast(it === 'booster' ? '⚡ 다음 문제 점수 2배!' : '🌪️ 돌풍 준비 완료! 아이템 타임이 끝나면 불어요', 2600, 'gift');
+  } catch (e) { toast('지금은 쓸 수 없어요'); }
+  render();
+}
+async function betweenItemsHTML(el, allowGust) {
+  const items = ownedItems();
+  const slot = String((st.qIndex || 0) + 1);
+  const cur = (await db.get(`${R()}/intents/${slot}/${uid}`)) || {};
+  const nextExists = (st.qIndex || 0) + 1 < total();
+  const html = [0, 1].map(k => {
+    const it = items[k];
+    if (!it) return `<div class="itemslot empty">빈 칸</div>`;
+    const I = ITEMS[it];
+    let cls = 'off', note = '';
+    if (it === 'booster') { if (cur.booster) { cls = 'used'; note = '다음 문제 2배!'; } else if (nextExists) { cls = 'can'; note = '눌러서 사용'; } }
+    else if (it === 'gust') {
+      if (cur.gust) { cls = 'used'; note = '준비 완료'; }
+      else if (!allowGust || st.itemDone) note = '아이템 타임에';
+      else if (myScore && myScore.rank === 1) note = '1등은 못 써요';
+      else { cls = 'can'; note = '눌러서 사용'; }
+    }
+    else if (it === 'umbrella') note = '자동으로 막아요';
+    else note = '문제 풀 때 써요';
+    return `<div class="itemslot ${cls}" data-it="${it}"><span class="ic">${I.icon}</span>${I.name}<small class="sub" style="font-size:18px">${note ? '· ' + note : ''}</small></div>`;
+  }).join('');
+  el.innerHTML = `<span class="lab">내 아이템</span>${html}`;
+  $$('.itemslot.can', el).forEach(x => x.addEventListener('click', () => useBetween(x.dataset.it)));
+}
+
+let resultShown = -1;
+function showResult() {
+  const i = st.qIndex, q = questions[i];
+  if (!q) return;
+  show('s-res');
+  const L = myScore && myScore.last;
+  if (!L || L.q !== i) {
+    $('#r-title').textContent = '채점 중… ⏳'; $('#r-title').className = 'result-big';
+    $('#r-detail').textContent = ''; $('#r-exp').innerHTML = '';
+  } else {
+    if (L.correct) {
+      $('#r-title').textContent = `⭕ 정답! +${L.gained}점`; $('#r-title').className = 'result-big ok';
+      const parts = [`기본 100`, `속도 +${L.speed}${L.timestop ? ' ⏱️' : ''}`];
+      if (L.streakBonus) parts.push(`🔥 +${L.streakBonus}`);
+      if (L.mult > 1) parts.push(`×${L.mult}${L.booster ? ' ⚡' : ''}${L.spurt ? ' 🏁' : ''}`);
+      $('#r-detail').textContent = parts.join(' · ');
+    } else {
+      $('#r-title').textContent = L.answered ? '😢 아쉬워요!' : '⏰ 시간이 끝났어요'; $('#r-title').className = 'result-big no';
+      $('#r-detail').innerHTML = `정답은 <b style="color:#2fb36d">${fmt(answerText(q))}</b>` + (L.booster ? ' · ⚡ 부스터는 사라졌어요' : '');
+    }
+    $('#r-exp').innerHTML = explainHTML(q, { pics: true });
+    if (resultShown !== i) { resultShown = i; L.correct ? sfx.correct() : sfx.wrong(); }
+  }
+  paintMe();
+  betweenItemsHTML($('#r-items'), false);
+}
+
+function showItem() {
+  show('s-item');
+  const g = myScore && myScore.gift;
+  if (g && g.slot === st.itemSlot) {
+    $('#it-gift').innerHTML = g.item ? `<span class="bounce">${ITEMS[g.item].icon}</span> <b>${ITEMS[g.item].name}</b>${eulReul(ITEMS[g.item].name)} 받았어요!<div class="sub" style="font-size:26px">${ITEMS[g.item].desc}</div>` : '가방이 꽉 찼어요! (최대 2개)';
+  } else $('#it-gift').textContent = '상자를 여는 중…';
+  $('#it-help').textContent = st.itemDone ? '아이템 타임이 끝났어요. 다음 문제를 기다려요!' : '⚡ 부스터와 🌪️ 돌풍은 지금 눌러서 써요. ☂️ 우산은 갖고만 있으면 돼요.';
+  paintMe();
+  betweenItemsHTML($('#it-list'), true);
+}
+
+function showEnd() {
+  show('s-end');
+  $('#e-char').textContent = CHARS[ch];
+  $('#e-title').textContent = myScore && myScore.rank ? `🏁 ${myScore.rank}등으로 들어왔어요!` : '🏁 레이스 끝!';
+  $('#e-score').textContent = myScore ? `${myScore.score}점 · 정답 ${myScore.correct || 0}개` : '';
+  const aw = st.awards || {};
+  const mine = [];
+  if (aw.fastest && aw.fastest.uid === uid) mine.push('⚡ 가장 빠른 손');
+  if (aw.streak && aw.streak.uid === uid) mine.push('🔥 연속 정답왕');
+  if (aw.comeback && aw.comeback.uid === uid) mine.push('🚀 역전의 주인공');
+  $('#e-awards').textContent = mine.length ? '🏅 ' + mine.join(', ') + ' 상을 받았어요!' : '';
+  if (resultShown !== 'end') { resultShown = 'end'; sfx.fanfare(); }
+}
+</script>
+</body>
+</html>

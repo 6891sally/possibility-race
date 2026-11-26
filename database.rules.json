@@ -1,0 +1,43 @@
+{
+  "rules": {
+    "rooms": {
+      ".read": "auth != null",
+      ".indexOn": ["meta/createdAt"],
+      "$code": {
+        ".write": "auth != null && ((!data.exists() && newData.child('meta/hostUid').val() === auth.uid) || data.child('meta/hostUid').val() === auth.uid || (!newData.exists() && data.child('meta/createdAt').val() < now - 86400000))",
+        "players": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/meta').exists()",
+            ".validate": "newData.hasChildren(['num', 'name', 'char', 'joinedAt'])",
+            "num": { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 30 && newData.val() % 1 === 0" },
+            "name": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 8" },
+            "char": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 12" },
+            "joinedAt": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          }
+        },
+        "answers": {
+          "$q": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('rooms/' + $code + '/state/status').val() === 'question' && root.child('rooms/' + $code + '/state/qKey').val() === $q && root.child('rooms/' + $code + '/players/' + $uid).exists()",
+              ".validate": "newData.hasChildren(['choice', 'answeredAt']) && newData.child('answeredAt').val() === now",
+              "choice": { ".validate": "newData.isString() && newData.val().length <= 12" },
+              "answeredAt": { ".validate": "newData.isNumber()" },
+              "$other": { ".validate": false }
+            }
+          }
+        },
+        "intents": {
+          "$q": {
+            "$uid": {
+              "$item": {
+                ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('rooms/' + $code + '/players/' + $uid).exists()",
+                ".validate": "($item === 'booster' || $item === 'gust' || $item === 'magnifier' || $item === 'timestop') && newData.child('at').val() === now"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

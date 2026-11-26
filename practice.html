@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>가능성 레이스 · 혼자 연습</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="stage">
+  <button class="iconbtn" id="mute" style="right:20px;top:16px"></button>
+
+  <!-- 시작 -->
+  <section class="screen active center" id="s-start">
+    <h1>📝 혼자 연습</h1>
+    <div class="pill" id="range-lab" style="font-size:28px">범위: 5~6차시</div>
+    <p style="font-size:30px;margin-top:14px">내 번호를 눌러요</p>
+    <div class="numgrid" id="nums"></div>
+    <div class="row" style="justify-content:center">
+      <input class="field" id="name" maxlength="8" placeholder="이름" autocomplete="off">
+      <button class="btn" id="start" disabled>시작하기 ▶</button>
+    </div>
+    <p class="sub" id="grade-now" style="font-size:24px;margin-top:12px">&nbsp;</p>
+  </section>
+
+  <!-- 문제 -->
+  <section class="screen" id="s-quiz">
+    <div class="topbar" style="padding-right:80px">
+      <span class="pill" id="q-no">1 / 10</span>
+      <span class="pill" id="q-lesson">5차시</span>
+      <span class="grow"></span>
+      <span class="pill hot" id="q-score">맞힌 문제 0</span>
+      <a class="pill" href="index.html" id="home-link" style="text-decoration:none;color:inherit">🏠 처음</a>
+    </div>
+    <div class="prompt" id="q-prompt"></div>
+    <div id="q-body" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
+    <div class="fb" id="fb">
+      <div class="result-big" id="fb-title"></div>
+      <div style="font-size:30px;margin-bottom:12px" id="fb-ans"></div>
+      <div id="fb-exp" style="width:100%;max-width:1000px"></div>
+      <button class="btn" id="fb-next" style="margin-top:22px">다음 문제 ▶</button>
+    </div>
+  </section>
+
+  <!-- 결과 -->
+  <section class="screen center" id="s-result">
+    <h2 id="r-title">다 풀었어요!</h2>
+    <div class="stars" id="r-stars"></div>
+    <div style="font-size:52px" id="r-score"></div>
+    <p style="font-size:28px" id="r-detail"></p>
+    <div class="grade" id="r-grade"></div>
+    <p class="sub" id="r-next" style="font-size:22px"></p>
+    <div class="row" style="margin-top:22px">
+      <button class="btn" id="r-retry">🔁 틀린 문제 다시 풀기</button>
+      <button class="btn blue" id="r-new">✨ 새 문제 10개</button>
+      <a class="btn white" href="index.html" id="r-home" style="text-decoration:none">🏠 처음으로</a>
+    </div>
+  </section>
+</div>
+
+<script type="module">
+import { generate, parseRange, rangeLabel, isCorrect, answerText } from './js/questions.js';
+import { $, esc, fmt, show, sfx, muteButton, mountChoices, markChoices, explainHTML, store, fitStage } from './js/common.js';
+
+fitStage($('#stage'), 1200, 750);
+muteButton($('#mute'));
+
+const range = parseRange(new URLSearchParams(location.search).get('range') || '5,6');
+const rq = new URLSearchParams(location.search).get('range');
+$('#range-lab').textContent = '범위: ' + rangeLabel(range);
+if (rq) $('#home-link').href = $('#r-home').href = 'index.html?range=' + encodeURIComponent(rq);
+
+const GRADES = [
+  { min: 0, name: '🌱 새싹 러너' }, { min: 30, name: '🏃 달리기 선수' },
+  { min: 80, name: '🏅 국가대표' }, { min: 150, name: '👑 전설의 러너' }
+];
+const gradeOf = (n) => { let g = GRADES[0], next = null; for (let i = 0; i < GRADES.length; i++) { if (n >= GRADES[i].min) { g = GRADES[i]; next = GRADES[i + 1] || null; } } return { g, next }; };
+
+let num = store.get('pr_practice_num', null);
+let name = store.get('pr_practice_name', '');
+const keyOf = () => `pr_practice_total_${num}_${name}`;
+
+// 번호 버튼
+$('#nums').innerHTML = Array.from({ length: 30 }, (_, i) => `<button data-n="${i + 1}">${i + 1}</button>`).join('');
+const paintNum = () => document.querySelectorAll('#nums button').forEach(b => b.classList.toggle('on', +b.dataset.n === num));
+document.querySelectorAll('#nums button').forEach(b => b.addEventListener('click', () => { num = +b.dataset.n; sfx.tap(); paintNum(); check(); }));
+$('#name').value = name;
+$('#name').addEventListener('input', check);
+function check() {
+  name = $('#name').value.trim();
+  $('#start').disabled = !(num && name);
+  if (num && name) {
+    const t = store.get(keyOf(), 0), { g } = gradeOf(t);
+    $('#grade-now').textContent = `지금까지 맞힌 문제 ${t}개 · ${g.name}`;
+  } else $('#grade-now').innerHTML = '&nbsp;';
+}
+paintNum(); check();
+
+let list = [], idx = 0, right = 0, wrong = [], isRetry = false;
+
+$('#start').addEventListener('click', () => {
+  store.set('pr_practice_num', num); store.set('pr_practice_name', name);
+  begin(generate(range, 10, Date.now() ^ Math.floor(Math.random() * 1e9)), false);
+});
+$('#r-new').addEventListener('click', () => begin(generate(range, 10, Date.now() ^ Math.floor(Math.random() * 1e9)), false));
+$('#r-retry').addEventListener('click', () => begin(wrong.slice(), true));
+
+function begin(qs, retry) {
+  list = qs; idx = 0; right = 0; wrong = []; isRetry = retry;
+  sfx.start(); show('s-quiz'); renderQ();
+}
+function renderQ() {
+  const q = list[idx];
+  $('#q-no').textContent = `${idx + 1} / ${list.length}`;
+  $('#q-lesson').textContent = `${q.lesson}차시`;
+  $('#q-score').textContent = `맞힌 문제 ${right}`;
+  $('#q-prompt').innerHTML = fmt(q.prompt);
+  $('#fb').classList.remove('on');
+  mountChoices($('#q-body'), q, (choice) => feedback(q, choice));
+}
+function feedback(q, choice) {
+  const ok = isCorrect(q, choice);
+  if (ok) { right++; sfx.correct(); } else { wrong.push(q); sfx.wrong(); }
+  markChoices($('#q-body'), q, choice);
+  setTimeout(() => {
+    $('#fb-title').textContent = ok ? '⭕ 정답!' : '😢 아쉬워요!';
+    $('#fb-title').className = 'result-big ' + (ok ? 'ok' : 'no');
+    $('#fb-ans').innerHTML = ok ? '' : `정답은 <b style="color:#2fb36d">${fmt(answerText(q))}</b>`;
+    $('#fb-exp').innerHTML = explainHTML(q, { pics: true });
+    $('#fb-next').textContent = idx + 1 < list.length ? '다음 문제 ▶' : '결과 보기 🏁';
+    $('#fb').classList.add('on');
+  }, 700);
+}
+$('#fb-next').addEventListener('click', () => {
+  sfx.tap();
+  idx++;
+  if (idx < list.length) renderQ(); else finish();
+});
+function finish() {
+  const n = list.length;
+  let total = store.get(keyOf(), 0);
+  if (!isRetry) { total += right; store.set(keyOf(), total); }
+  const stars = n === 10 ? (right >= 9 ? 3 : right >= 7 ? 2 : right >= 4 ? 1 : 0) : Math.round(3 * right / n);
+  $('#r-title').textContent = isRetry ? '다시 풀기 끝!' : '다 풀었어요!';
+  $('#r-stars').innerHTML = [0, 1, 2].map(i => `<span class="${i < stars ? '' : 'off'}">⭐</span>`).join('');
+  $('#r-score').textContent = `${Math.round(right / n * 100)}점`;
+  $('#r-detail').textContent = `${n}문제 중 ${right}문제 맞혔어요` + (isRetry ? ' (다시 풀기는 누적에 안 들어가요)' : '');
+  const { g, next } = gradeOf(total);
+  $('#r-grade').textContent = `${esc(name)} · 누적 ${total}개 · ${g.name}`;
+  $('#r-next').textContent = next ? `${next.min - total}개 더 맞히면 ${next.name}!` : '최고 등급이에요! 멋져요!';
+  $('#r-retry').style.display = wrong.length ? '' : 'none';
+  if (stars === 3) sfx.fanfare(); else sfx.start();
+  show('s-result');
+}
+</script>
+</body>
+</html>

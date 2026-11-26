@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>가능성 레이스 · 자동 테스트</title>
+<style>
+  body { font-family: 'Malgun Gothic', sans-serif; margin: 24px; background: #fffdf6; color: #222; overflow: auto; }
+  h1 { font-size: 26px; } h2 { font-size: 20px; margin-top: 26px; }
+  table { border-collapse: collapse; margin-top: 8px; }
+  td, th { border: 1px solid #ddd; padding: 6px 10px; font-size: 14px; text-align: left; vertical-align: top; }
+  .ok { color: #2b8a3e; font-weight: bold; } .bad { color: #e03131; font-weight: bold; }
+  #summary { font-size: 22px; padding: 12px 18px; border-radius: 12px; display: inline-block; }
+  #summary.ok { background: #d3f9d8; } #summary.bad { background: #ffe3e3; }
+  pre { background: #f8f9fa; padding: 8px; font-size: 12px; max-width: 1100px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>🧪 가능성 레이스 자동 테스트</h1>
+<div id="summary">실행 중…</div>
+<div id="out"></div>
+<script type="module">
+import { generate, isCorrect, BANK, COLORS, LEVELS } from './js/questions.js';
+import { calcGain, rankPlayers, applyGusts, grantItems, consumeItems, pickItem, maxScore, magnifierOK, ITEM_KEYS } from './js/game.js';
+import { makeRng } from './js/questions.js';
+
+const out = document.getElementById('out');
+const results = [];
+function section(t) { out.insertAdjacentHTML('beforeend', `<h2>${t}</h2><table><tbody></tbody></table>`); return out.lastElementChild.querySelector('tbody'); }
+function row(tb, name, pass, detail = '') {
+  results.push(pass);
+  tb.insertAdjacentHTML('beforeend', `<tr><td class="${pass ? 'ok' : 'bad'}">${pass ? '통과' : '실패'}</td><td>${name}</td><td>${detail}</td></tr>`);
+}
+
+// ---- 그림(SVG)에서 직접 개수 세기: 생성기 내부 값이 아니라 실제로 그려진 것을 확인 ----
+const parser = new DOMParser();
+function countSvg(svg) {
+  const doc = parser.parseFromString(svg, 'image/svg+xml');
+  const m = {};
+  doc.querySelectorAll('[data-c]').forEach(e => { const c = e.getAttribute('data-c'); m[c] = (m[c] || 0) + 1; });
+  const total = Object.values(m).reduce((a, b) => a + b, 0);
+  return { m, total };
+}
+// 가능성 → 4분의 몇 (애매한 비율이면 null)
+function quarter(t, total) { const r = t / total * 4; return Number.isInteger(r) ? r : null; }
+// 테스트가 독립적으로 가진 주사위 판정표
+const DIE = { even: [2, 4, 6], odd: [1, 3, 5], eq7: [], le6: [1, 2, 3, 4, 5, 6], le3: [1, 2, 3], ge4: [4, 5, 6], ge1: [1, 2, 3, 4, 5, 6], eq0: [] };
+const NUMSET = ['0', '1/2', '1'];
+const q2num = { 0: '0', 2: '1/2', 4: '1' };
+
+function verify(q, err) {
+  const objQ = (svg, target) => {
+    const { m, total } = countSvg(svg);
+    const t = m[target] || 0;
+    const qq = quarter(t, total);
+    if (qq == null) err.push(`애매한 비율 ${t}/${total} (${q.id})`);
+    return { qq, total, colors: Object.keys(m).length };
+  };
+  switch (q.type) {
+    case 'A': {
+      const target = q.meta.objs[0].target;
+      const { qq, total } = objQ(q.svg, target);
+      if (![4, 8].includes(total)) err.push(`A 총 개수 ${total}`);
+      if (qq !== q.answer) err.push(`A 정답 불일치 ${q.id}: 그림 ${qq}, 정답 ${q.answer}`);
+      if (q.choices.length !== 5) err.push('A 보기 5개 아님');
+      break;
+    }
+    case 'B': {
+      const b = BANK[q.meta.bank];
+      if (!b || b.q !== q.answer || !q.prompt.startsWith(b.s)) err.push(`B 문장 은행 불일치 ${q.id}`);
+      break;
+    }
+    case 'C': case 'D': case 'E': {
+      const target = q.meta.objs[0].target;
+      const qs = q.choices.map((c, i) => {
+        const r = objQ(c.svg, target);
+        if (q.meta.objs[i].form === 'spinner' && ![2, 4, 8].includes(r.total)) err.push(`회전판 칸 수 ${r.total}`);
+        if (q.meta.objs[i].form === 'bag' && ![4, 8].includes(r.total)) err.push(`주머니 개수 ${r.total}`);
+        return r.qq;
+      });
+      if (new Set(qs).size !== qs.length) err.push(`${q.type} 가능성이 같은 물건이 있음 ${q.id}`);
+      let exp;
+      if (q.type === 'C') {
+        const a = q.meta.ask;
+        if (a === 'highest') exp = qs.indexOf(Math.max(...qs));
+        else if (a === 'lowest') exp = qs.indexOf(Math.min(...qs));
+        else { const v = { half: 2, certain: 4, impossible: 0 }[a]; exp = qs.indexOf(v); if (qs.filter(x => x === v).length !== 1) err.push('C 해당 물건이 1개가 아님'); }
+        if (exp !== q.answer) err.push(`C 정답 불일치 ${q.id}`);
+        const word = { highest: '가장 높은', lowest: '가장 낮은', half: '반반인', certain: '확실한', impossible: '불가능한' }[a];
+        if (!q.prompt.includes(word)) err.push('C 질문에 조건 없음');
+      } else if (q.type === 'D') {
+        exp = [0, 1, 2].sort((a, b) => qs[b] - qs[a]);
+        if (exp.join() !== q.answer.join()) err.push(`D 순서 불일치 ${q.id}`);
+        if (!isCorrect(q, exp.join(','))) err.push('D 판정 함수 오류');
+      } else {
+        exp = qs[0] > qs[1] ? 0 : 1;
+        if (exp !== q.answer) err.push(`E 정답 불일치 ${q.id}`);
+      }
+      if (!q.prompt.includes(COLORS[target].name)) err.push('질문에 색 이름 없음');
+      break;
+    }
+    case 'F': {
+      let val;
+      if (q.meta.form === 'coin') val = q.meta.event === 'any' ? '1' : '1/2';
+      else if (q.meta.form === 'die') { const n = DIE[q.meta.event].length; val = n === 0 ? '0' : n === 3 ? '1/2' : n === 6 ? '1' : 'X'; }
+      else { const r = objQ(q.svg, q.meta.objs[0].target); val = q2num[r.qq] || 'X'; }
+      if (q.choices[q.answer].v !== val) err.push(`F 정답 불일치 ${q.id}: 기대 ${val}, 정답 ${q.choices[q.answer].v}`);
+      break;
+    }
+    case 'G': {
+      const c = q.choices[q.answer];
+      if (q.meta.v === 'w2n' && c.v !== q2num[q.meta.q]) err.push('G 말→수 오류');
+      if (q.meta.v === 'n2w' && c.v !== q.meta.q) err.push('G 수→말 오류');
+      if (q.meta.v === 'pair') {
+        q.choices.forEach((p, i) => { const right = q2num[p.w] === p.v; if (right !== (i === q.answer)) err.push('G 짝짓기 보기 오류'); });
+      }
+      break;
+    }
+  }
+  // 7차시 수 검사
+  if (q.lesson === 7) {
+    q.choices.forEach(c => { if (c.t === 'num' || c.t === 'pair') { if (!NUMSET.includes(c.v)) err.push(`7차시 허용 안 된 수 ${c.v}`); } });
+    if (q.choices.some(c => c.t === 'level' && ![0, 2, 4].includes(c.v))) err.push('7차시에 5단계 말 사용');
+    const txt = q.prompt + ' ' + q.explain + ' ' + q.choices.map(c => c.v ?? '').join(' ');
+    const fr = (txt.match(/\d+\s*\/\s*\d+/g) || []).filter(f => f.replace(/\s/g, '') !== '1/2');
+    if (fr.length) err.push(`7차시 다른 분수 ${fr.join(',')}`);
+    if (/분의/.test(txt)) err.push('7차시 "분의" 표현');
+  }
+  // 모든 차시: 1/2 외 분수 금지
+  const all = q.prompt + q.explain;
+  const fr2 = (all.match(/\d+\s*\/\s*\d+/g) || []).filter(f => f.replace(/\s/g, '') !== '1/2');
+  if (fr2.length) err.push(`분수 사용 ${fr2.join(',')}`);
+  if (!q.explain) err.push('해설 없음');
+}
+
+// ---------- 1. 범위별 1000회 ----------
+const t0 = performance.now();
+const tb1 = section('1. 문제 생성기 1000회 실행 (범위별, 한 번에 10문제)');
+for (const range of [[5], [5, 6], [5, 6, 7]]) {
+  let outOf = 0, n = 0; const err = []; const typeCount = {};
+  for (let s = 0; s < 1000; s++) {
+    const list = generate(range, 10, 100000 + s * 7919);
+    for (const q of list) {
+      n++;
+      if (!range.includes(q.lesson)) outOf++;
+      typeCount[q.type] = (typeCount[q.type] || 0) + 1;
+      const e = []; verify(q, e);
+      if (e.length && err.length < 20) err.push(...e);
+      if (e.length) err.count = (err.count || 0) + e.length;
+    }
+  }
+  row(tb1, `range ${range.join(',')}: 범위 밖 문제 수`, outOf === 0, `${n}문제 중 범위 밖 ${outOf}개 · 유형 분포 ${JSON.stringify(typeCount)}`);
+  row(tb1, `range ${range.join(',')}: 정답 = 그림 속 실제 개수·비율 / 7차시 수 0·1/2·1만`, !err.length, err.length ? `<pre>${err.count}건\n${err.slice(0, 20).join('\n')}</pre>` : '오류 0건');
+}
+row(tb1, '생활 상황 문장 은행 20개 이상', BANK.length >= 20, `${BANK.length}개 (확실 ${BANK.filter(b => b.q === 4).length}, 불가능 ${BANK.filter(b => b.q === 0).length}, 반반 ${BANK.filter(b => b.q === 2).length}, ~일 것 같다 ${BANK.filter(b => b.q === 3).length}, ~아닐 것 같다 ${BANK.filter(b => b.q === 1).length})`);
+{
+  const ls = generate([7], 200, 42);
+  row(tb1, 'range 7만: 7차시만 나옴', ls.every(q => q.lesson === 7), `${ls.length}문제`);
+}
+
+// ---------- 2. 같은 seed ----------
+const tb2 = section('2. 같은 seed → 같은 문제');
+{
+  let same = 0, diff = 0;
+  for (let s = 0; s < 200; s++) {
+    const a = JSON.stringify(generate([5, 6, 7], 20, s * 31 + 1));
+    const b = JSON.stringify(generate([5, 6, 7], 20, s * 31 + 1));
+    const c = JSON.stringify(generate([5, 6, 7], 20, s * 31 + 2));
+    if (a === b) same++;
+    if (a !== c) diff++;
+  }
+  row(tb2, '같은 seed 200쌍이 모두 완전히 같음', same === 200, `${same}/200`);
+  row(tb2, '다른 seed면 다른 문제', diff === 200, `${diff}/200`);
+  const big = generate([5, 6], 20, 12345);
+  row(tb2, '한 판(20문제) 안에서 같은 문제 반복 없음', new Set(big.map(q => q.sig)).size === 20, '');
+}
+
+// ---------- 3. 점수·아이템 단위 테스트 ----------
+const tb3 = section('3. 점수 계산 · 아이템 효과');
+const eq = (name, got, exp) => row(tb3, name, JSON.stringify(got) === JSON.stringify(exp), `결과 ${JSON.stringify(got)} / 기대 ${JSON.stringify(exp)}`);
+eq('정답 즉시(0초): 100 + 50', calcGain({ correct: true, elapsedMs: 0, limitMs: 20000 }).gained, 150);
+eq('정답 5초/20초: 100 + round(50×0.75)=138', calcGain({ correct: true, elapsedMs: 5000, limitMs: 20000 }).gained, 138);
+eq('정답 시간 끝(20초): 100', calcGain({ correct: true, elapsedMs: 20000, limitMs: 20000 }).gained, 100);
+eq('오답: 0점, 연속 0', [calcGain({ correct: false, elapsedMs: 1000, limitMs: 20000, streakBefore: 4 }).gained, calcGain({ correct: false, elapsedMs: 1000, limitMs: 20000, streakBefore: 4 }).streak], [0, 0]);
+eq('연속 2→3번째 정답: 🔥 +20', calcGain({ correct: true, elapsedMs: 20000, limitMs: 20000, streakBefore: 2 }).gained, 120);
+eq('연속 1→2번째 정답: 보너스 없음', calcGain({ correct: true, elapsedMs: 20000, limitMs: 20000, streakBefore: 1 }).gained, 100);
+eq('⚡ 두 배 + 정답(5초): 138×2=276', calcGain({ correct: true, elapsedMs: 5000, limitMs: 20000, booster: true }).gained, 276);
+{
+  const u = consumeItems(['booster', 'umbrella'], { booster: { at: 1 } });
+  const g = calcGain({ correct: false, elapsedMs: 5000, limitMs: 20000, booster: u.booster });
+  eq('⚡ 두 배 + 오답: 0점, 부스터만 사라짐', [g.gained, u.items], [0, ['umbrella']]);
+}
+eq('없는 아이템 사용 의사는 무시', consumeItems(['umbrella'], { booster: { at: 1 } }), { items: ['umbrella'], booster: false, timestop: false, magnifier: false });
+eq('⏱️ 시간 정지 + 정답(19초): 속도 50 고정', calcGain({ correct: true, elapsedMs: 19000, limitMs: 20000, timestop: true }).gained, 150);
+eq('⏱️ 시간 정지 + 오답: 0점', calcGain({ correct: false, elapsedMs: 1000, limitMs: 20000, timestop: true }).gained, 0);
+eq('🏁 마지막 문제 2배 + ⚡ = 4배', calcGain({ correct: true, elapsedMs: 0, limitMs: 20000, booster: true, spurt: true }).gained, 600);
+{
+  const P = () => ({ a: { score: 300, items: ['umbrella'] }, b: { score: 200, items: ['gust'] }, c: { score: 100, items: [] } });
+  let p = P(); let ev = applyGusts(p, ['a', 'b', 'c'], ['b'], makeRng(1), { booster: 1, gust: 1, umbrella: 1, magnifier: 1, timestop: 1 });
+  eq('🌪️ 돌풍 vs ☂️ 우산: 막힘, 점수 그대로, 우산·돌풍 소모', [p.a.score, p.b.score, p.a.items, p.b.items, ev[0].blocked], [300, 200, [], [], true]);
+  p = P(); p.a.items = []; ev = applyGusts(p, ['a', 'b', 'c'], ['b'], makeRng(1), { booster: 1, gust: 1, umbrella: 1, magnifier: 1, timestop: 1 });
+  eq('🌪️ 돌풍(우산 없음): 바로 앞 순위에게서 30점', [p.a.score, p.b.score, p.c.score, ev[0].to, ev[0].amount], [270, 230, 100, 'a', 30]);
+  p = P(); p.a.items = ['gust']; ev = applyGusts(p, ['a', 'b', 'c'], ['a'], makeRng(3), { booster: 1, gust: 1, umbrella: 1, magnifier: 1, timestop: 1 });
+  eq('🌪️ 1등이 돌풍: 점수 변화 없음, 다른 아이템으로 교체', [p.a.score, p.b.score, ev[0].type, p.a.items.includes('gust'), p.a.items.length], [300, 200, 'swap', false, 1]);
+  p = { a: { score: 20, items: [] }, b: { score: 10, items: ['gust'] } };
+  applyGusts(p, ['a', 'b'], ['b'], makeRng(1), { gust: 1 });
+  eq('🌪️ 앞 친구 점수가 30점보다 적으면 있는 만큼만', [p.a.score, p.b.score], [0, 30]);
+  let firstGust = 0, full = 0, tooMany = 0;
+  for (let s = 0; s < 1000; s++) {
+    const pl = { a: { items: [] }, b: { items: [] }, c: { items: ['umbrella', 'booster'] } };
+    const gifts = grantItems(pl, ['a', 'b', 'c'], makeRng(s), { booster: 1, gust: 1, umbrella: 1, magnifier: 1, timestop: 1 });
+    if (gifts.a === 'gust') firstGust++;
+    if (gifts.c !== null) full++;
+    if (Object.values(pl).some(x => x.items.length > 2)) tooMany++;
+  }
+  row(tb3, '아이템 상자: 1등은 돌풍을 받지 않음 / 2개면 더 안 줌', firstGust === 0 && full === 0 && tooMany === 0, `1등 돌풍 ${firstGust}, 꽉 찬 가방에 지급 ${full}, 3개 이상 ${tooMany}`);
+  const good = (idx) => { let g = 0; const r = makeRng(9); for (let i = 0; i < 5000; i++) { const it = pickItem(r, idx, 20, { booster: 1, gust: 1, umbrella: 1, magnifier: 1, timestop: 1 }, idx === 0); if (['booster', 'gust', 'timestop'].includes(it)) g++; } return g / 5000; };
+  const top = good(0), bottom = good(19);
+  row(tb3, '순위가 낮을수록 좋은 아이템(⚡🌪️⏱️) 확률 상승', bottom > top + 0.15, `1등 ${(top * 100).toFixed(0)}% → 꼴등 ${(bottom * 100).toFixed(0)}%`);
+  const off = { booster: true, gust: false, umbrella: true, magnifier: false, timestop: false };
+  let bad = 0; const r2 = makeRng(5); for (let i = 0; i < 2000; i++) { const it = pickItem(r2, 3, 10, off, false); if (!off[it]) bad++; }
+  row(tb3, '꺼 둔 아이템은 나오지 않음', bad === 0, `${bad}회`);
+}
+{
+  const r = rankPlayers([
+    { uid: 'slow', num: 1, score: 300, timeSum: 30000, answered: 3 },
+    { uid: 'fast', num: 2, score: 300, timeSum: 9000, answered: 3 },
+    { uid: 'top', num: 3, score: 400, timeSum: 60000, answered: 3 },
+    { uid: 'none', num: 4, score: 0, timeSum: 0, answered: 0 }
+  ]).map(p => p.uid);
+  eq('동점이면 평균 응답 시간이 빠른 쪽이 위', r, ['top', 'fast', 'slow', 'none']);
+}
+eq('결승선 점수(10문제) = 150×10 + 20×8 + 마지막 2배', maxScore(10), 150 * 9 + 20 * 7 + (150 + 20) * 2);
+{
+  const qs = generate([5, 6, 7], 300, 77);
+  const bad = qs.filter(q => magnifierOK(q) !== (q.kind !== 'order' && [3, 5].includes(q.choices.length)));
+  row(tb3, '🔍 돋보기는 5단계·3지선다에서만', bad.length === 0 && qs.some(q => !magnifierOK(q)), `가능 ${qs.filter(magnifierOK).length} / 불가 ${qs.filter(q => !magnifierOK(q)).length}`);
+}
+
+const pass = results.every(Boolean);
+const sum = document.getElementById('summary');
+sum.className = pass ? 'ok' : 'bad';
+sum.textContent = `${pass ? '✅ 모두 통과' : '❌ 실패 있음'} — ${results.filter(Boolean).length}/${results.length} (${((performance.now() - t0) / 1000).toFixed(1)}초)`;
+window.__testResult = { pass, total: results.length, passed: results.filter(Boolean).length };
+</script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>가능성 레이스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="stage">
+  <section class="screen active center" id="home">
+    <div class="runners"><span class="bounce">🐰</span> 🐢 <span class="bounce" style="animation-delay:.3s">🦊</span> 🏁</div>
+    <h1>가능성 레이스</h1>
+    <p class="sub" style="font-size:30px">5학년 2학기 수학 6단원 · 일이 일어날 가능성</p>
+    <div class="home-btns">
+      <a class="btn big" href="play.html" id="go-race">🏃 실시간 레이스 참가<small>선생님이 알려 준 방 코드로 들어가요</small></a>
+      <a class="btn big blue" href="practice.html" id="go-practice">📝 혼자 연습<small>10문제를 풀고 해설을 봐요</small></a>
+    </div>
+    <p class="sub" style="margin-top:46px;font-size:22px"><a href="host.html" style="color:#adb5bd">선생님 화면</a></p>
+  </section>
+</div>
+<script type="module">
+import { fitStage } from './js/common.js';
+fitStage(document.getElementById('stage'), 1200, 750);
+// 현재 주소의 range 값을 혼자 연습에 그대로 넘김
+const range = new URLSearchParams(location.search).get('range');
+if (range) document.getElementById('go-practice').href = 'practice.html?range=' + encodeURIComponent(range);
+document.querySelectorAll('a.btn').forEach(a => { a.style.textDecoration = 'none'; });
+</script>
+</body>
+</html>
