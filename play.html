@@ -191,15 +191,17 @@ $('#rejoin').addEventListener('click', () => { $('#code').value = code; show('s-
     const info = await db.init();
     uid = info.uid;
     db.onConnection(ok => { $('#net').style.display = ok || !joined ? 'none' : ''; });
+    // QR로 들어오면 주소에 방 코드가 있음 (?code=1234)
+    const c4 = (new URLSearchParams(location.search).get('code') || '').replace(/\D/g, '').slice(0, 4);
     const saved = jstore.get('pr_join');
-    if (saved && saved.uid === uid) {
+    // 새로고침 복귀: 같은 방일 때만 (다른 방 QR을 찍었으면 새로 입장)
+    if (saved && saved.uid === uid && (c4.length !== 4 || c4 === saved.code)) {
       const p = await db.get('rooms/' + saved.code + '/players/' + uid);
       if (p) { code = saved.code; num = p.num; name = p.name; ch = p.char; return enterGame(); }
       jstore.del('pr_join');
     }
-    const urlCode = new URLSearchParams(location.search).get('code');
-    if (urlCode) $('#code').value = urlCode.slice(0, 4);
     show('s-code');
+    if (c4.length === 4) { $('#code').value = c4; checkCode(); }
   } catch (e) {
     console.error(e);
     $('#load-msg').textContent = '연결하지 못했어요. 선생님께 알려 주세요. (' + (e.code || e.message) + ')';

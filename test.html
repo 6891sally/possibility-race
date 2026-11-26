@@ -22,6 +22,7 @@
 import { generate, isCorrect, BANK, COLORS, LEVELS } from './js/questions.js';
 import { calcGain, rankPlayers, applyGusts, grantItems, consumeItems, pickItem, maxScore, magnifierOK, ITEM_KEYS } from './js/game.js';
 import { makeRng } from './js/questions.js';
+import { qrMatrix } from './js/qr.js';
 
 const out = document.getElementById('out');
 const results = [];
@@ -234,6 +235,101 @@ eq('결승선 점수(10문제) = 150×10 + 20×8 + 마지막 2배', maxScore(10)
   const qs = generate([5, 6, 7], 300, 77);
   const bad = qs.filter(q => magnifierOK(q) !== (q.kind !== 'order' && [3, 5].includes(q.choices.length)));
   row(tb3, '🔍 돋보기는 5단계·3지선다에서만', bad.length === 0 && qs.some(q => !magnifierOK(q)), `가능 ${qs.filter(magnifierOK).length} / 불가 ${qs.filter(q => !magnifierOK(q)).length}`);
+}
+
+// ---------- 4. QR 코드: 만든 그림을 거꾸로 읽어서 원래 글자가 나오는지 ----------
+// 생성기와 따로 만든 해독기: 표준 표(전체 코드워드 수·정렬 패턴 위치)를 직접 쓰고,
+// 리드-솔로몬 신드롬이 모두 0인지로 오류 정정 부분까지 검사합니다.
+const tb4 = section('4. QR 코드 (만든 QR을 다시 읽어 확인)');
+{
+  const EXP = new Array(512), LOG = new Array(256);
+  for (let i = 0, x = 1; i < 255; i++) { EXP[i] = x; LOG[x] = i; x <<= 1; if (x & 256) x ^= 0x11d; }
+  for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
+  const mul = (a, b) => (a && b) ? EXP[LOG[a] + LOG[b]] : 0;
+  const TOTAL = [0, 26, 44, 70, 100, 134, 172, 196, 242, 292, 346];
+  const EC = [0, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26];
+  const NB = [0, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5];
+  const ALIGN = { 2: [6, 18], 3: [6, 22], 4: [6, 26], 5: [6, 30], 6: [6, 34], 7: [6, 22, 38], 8: [6, 24, 42], 9: [6, 26, 46], 10: [6, 28, 50] };
+  const MASK = [(x, y) => (x + y) % 2 === 0, (x, y) => y % 2 === 0, (x) => x % 3 === 0, (x, y) => (x + y) % 3 === 0,
+    (x, y) => (Math.floor(y / 2) + Math.floor(x / 3)) % 2 === 0, (x, y) => (x * y) % 2 + (x * y) % 3 === 0,
+    (x, y) => ((x * y) % 2 + (x * y) % 3) % 2 === 0, (x, y) => ((x * y) % 3 + (x + y) % 2) % 2 === 0];
+  function isFunc(x, y, size, ver) {
+    if (x <= 8 && y <= 8) return true;
+    if (x >= size - 8 && y <= 8) return true;
+    if (x <= 8 && y >= size - 8) return true;
+    if (x === 6 || y === 6) return true;
+    if (ver >= 7 && ((x >= size - 11 && x <= size - 9 && y <= 5) || (y >= size - 11 && y <= size - 9 && x <= 5))) return true;
+    const a = ALIGN[ver] || [];
+    for (const ay of a) for (const ax of a) {
+      if ((ax === 6 && ay === 6) || (ax === 6 && ay === a[a.length - 1]) || (ay === 6 && ax === a[a.length - 1])) continue;
+      if (Math.abs(x - ax) <= 2 && Math.abs(y - ay) <= 2) return true;
+    }
+    return false;
+  }
+  function decode(mat) {
+    const size = mat.length, ver = (size - 17) / 4;
+    const found = [];
+    for (let mk = 0; mk < 8; mk++) {
+      const bits = [];
+      for (let right = size - 1; right > 0; right -= 2) {
+        if (right === 6) right--;
+        const colPair = (size - 1 - right) / 2 | 0; // 오른쪽에서 몇 번째 기둥인지
+        for (let i = 0; i < size; i++) {
+          const y = colPair % 2 === 0 ? size - 1 - i : i; // 첫 기둥은 위로
+          for (const x of [right, right - 1]) {
+            if (isFunc(x, y, size, ver)) continue;
+            bits.push(mat[y][x] ^ (MASK[mk](x, y) ? 1 : 0));
+          }
+        }
+      }
+      const total = TOTAL[ver], ec = EC[ver], nb = NB[ver];
+      const cw = [];
+      for (let i = 0; i < total; i++) { let v = 0; for (let b = 0; b < 8; b++) v = (v << 1) | bits[i * 8 + b]; cw.push(v); }
+      const shortLen = Math.floor(total / nb), numShort = nb - total % nb;
+      const blocks = Array.from({ length: nb }, (_, i) => ({ d: [], e: [], dl: shortLen - ec + (i < numShort ? 0 : 1) }));
+      let k = 0;
+      const maxD = Math.max(...blocks.map(b => b.dl));
+      for (let i = 0; i < maxD; i++) for (const b of blocks) if (i < b.dl) b.d.push(cw[k++]);
+      for (let i = 0; i < ec; i++) for (const b of blocks) b.e.push(cw[k++]);
+      const okRS = blocks.every(b => {
+        const c = b.d.concat(b.e), n = c.length;
+        for (let s = 0; s < ec; s++) { let acc = 0; for (let j = 0; j < n; j++) acc ^= mul(c[j], EXP[(s * (n - 1 - j)) % 255]); if (acc) return false; }
+        return true;
+      });
+      if (!okRS) continue;
+      const data = [].concat(...blocks.map(b => b.d));
+      const bs = data.map(v => v.toString(2).padStart(8, '0')).join('');
+      if (bs.slice(0, 4) !== '0100') continue;
+      const cl = ver < 10 ? 8 : 16, len = parseInt(bs.slice(4, 4 + cl), 2);
+      const out = new Uint8Array(len);
+      for (let i = 0; i < len; i++) out[i] = parseInt(bs.slice(4 + cl + i * 8, 12 + cl + i * 8), 2);
+      found.push({ mask: mk, text: new TextDecoder().decode(out) });
+    }
+    return found;
+  }
+  function formatOK(mat, mask) {
+    // 오류 정정 M(00) + 마스크 → BCH(15,5) → 0x5412 XOR, 두 복사본이 서로 같은지
+    const d = (0 << 3) | mask; let r = d << 10;
+    for (let i = 14; i >= 10; i--) if ((r >> i) & 1) r ^= 0x537 << (i - 10);
+    const want = ((d << 10) | r) ^ 0x5412, size = mat.length;
+    const a = [], b = [];
+    for (let i = 0; i <= 5; i++) a.push(mat[i][8]); a.push(mat[7][8], mat[8][8], mat[8][7]); for (let i = 9; i < 15; i++) a.push(mat[8][14 - i]);
+    for (let i = 0; i < 8; i++) b.push(mat[8][size - 1 - i]); for (let i = 8; i < 15; i++) b.push(mat[size - 15 + i][8]);
+    const val = arr => arr.reduce((s, v, i) => s | (v << i), 0);
+    return val(a) === want && val(b) === want && mat[size - 8][8] === 1;
+  }
+  const base = 'https://6891sally.github.io/possibility-race/';
+  const samples = [base + 'play.html', base + 'play.html?code=1234', base + 'practice.html?range=5,6,7', '가능성 레이스 🏁',
+    base + 'play.html?' + 'x'.repeat(70), 'A'.repeat(150)];
+  for (const s of samples) {
+    const r = qrMatrix(s);
+    const dec = decode(r.matrix);
+    const ok = dec.length === 1 && dec[0].text === s && dec[0].mask === r.mask && formatOK(r.matrix, r.mask);
+    row(tb4, `버전 ${r.version} (${r.size}×${r.size}), 마스크 ${r.mask}: "${s.length > 50 ? s.slice(0, 50) + '…' : s}"`, ok, ok ? '읽기·오류 정정·형식 정보 모두 일치' : JSON.stringify(dec));
+  }
+  let allMasks = true;
+  for (let mk = 0; mk < 8; mk++) { const r = qrMatrix(base + 'play.html?code=9999', mk); const d = decode(r.matrix); if (!(d.length === 1 && d[0].mask === mk && formatOK(r.matrix, mk))) allMasks = false; }
+  row(tb4, '마스크 8가지 모두 바르게 읽힘', allMasks, '');
 }
 
 const pass = results.every(Boolean);

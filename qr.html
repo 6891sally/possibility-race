@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>가능성 레이스 · QR 코드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+<style>
+  @page { size: A4 portrait; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Jua', 'Malgun Gothic', sans-serif; background: #fff7e6; color: #2b2b3a; }
+  .bar { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 14px; background: #fff; border-bottom: 3px solid #e7dcc6; position: sticky; top: 0; }
+  .bar button { font-family: inherit; font-size: 20px; min-height: 52px; padding: 6px 18px; border-radius: 14px; border: 3px solid #e7dcc6; background: #fff; cursor: pointer; }
+  .bar button.on { background: #fff3bf; border-color: #fab005; }
+  .bar button.print { background: #ff7a59; color: #fff; border-color: #e4572e; }
+  .sheet { width: 186mm; margin: 16px auto; background: #fff; border-radius: 18px; padding: 10mm; text-align: center; box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+  h1 { font-weight: normal; font-size: 40px; margin: 0; color: #e4572e; }
+  .sub { color: #6b6b80; font-size: 20px; margin: 4px 0 10px; }
+  .qr { width: 120mm; height: 120mm; margin: 4mm auto; }
+  .qr svg { width: 100%; height: 100%; }
+  .url { font-family: Consolas, monospace; font-size: 15px; word-break: break-all; background: #f8f9fa; border-radius: 10px; padding: 6px 10px; display: inline-block; }
+  .steps { font-size: 22px; line-height: 1.6; margin-top: 8px; }
+  .code { font-size: 30px; color: #e4572e; }
+  .small { display: flex; gap: 8mm; justify-content: center; margin-top: 4mm; }
+  .small .qr { width: 70mm; height: 70mm; }
+  @media print {
+    body { background: #fff; }
+    .bar { display: none; }
+    .sheet { box-shadow: none; margin: 0 auto; padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="bar">
+  <span>어떤 QR을 만들까요?</span>
+  <button data-kind="race" class="on">🏃 실시간 레이스 참가</button>
+  <button data-kind="practice">📝 혼자 연습</button>
+  <span id="range-box" style="display:none">
+    <button data-range="5">5차시</button>
+    <button data-range="5,6" class="on">5~6차시</button>
+    <button data-range="5,6,7">5~7차시</button>
+  </span>
+  <button class="print" onclick="window.print()">🖨️ 인쇄하기</button>
+</div>
+<div class="sheet" id="sheet"></div>
+
+<script type="module">
+import { qrSVG } from './js/qr.js';
+import { rangeLabel, parseRange } from './js/questions.js';
+
+const base = location.href.replace(/qr\.html.*$/, '');
+const params = new URLSearchParams(location.search);
+let kind = params.get('kind') === 'practice' ? 'practice' : 'race';
+let range = params.get('range') || '5,6';
+const code = (params.get('code') || '').replace(/\D/g, '').slice(0, 4);
+
+function paint() {
+  document.querySelectorAll('[data-kind]').forEach(b => b.classList.toggle('on', b.dataset.kind === kind));
+  document.querySelectorAll('[data-range]').forEach(b => b.classList.toggle('on', b.dataset.range === range));
+  document.getElementById('range-box').style.display = kind === 'practice' ? '' : 'none';
+  let url, html;
+  if (kind === 'race') {
+    url = base + 'play.html' + (code ? '?code=' + code : '');
+    html = `<h1>🏁 가능성 레이스 참가하기</h1>
+      <p class="sub">태블릿 카메라로 QR 코드를 찍어요</p>
+      <div class="qr">${qrSVG(url)}</div>
+      <div class="url">${url}</div>
+      <div class="steps">${code ? `방 코드 <b class="code">${code}</b> 가 자동으로 들어가요<br>` : '① 선생님이 알려 준 <b>방 코드 4자리</b>를 눌러요<br>'}
+      ② 내 번호 → ③ 이름 → ④ 캐릭터를 골라요</div>`;
+  } else {
+    url = base + 'practice.html?range=' + range;
+    html = `<h1>📝 가능성 레이스 혼자 연습</h1>
+      <p class="sub">범위: ${rangeLabel(parseRange(range))} · 10문제 · 바로 해설</p>
+      <div class="qr">${qrSVG(url)}</div>
+      <div class="url">${url}</div>
+      <div class="steps">번호와 이름을 쓰고 10문제를 풀어요.<br>맞힌 문제가 쌓이면 등급이 올라가요! 🌱→🏃→🏅→👑</div>`;
+  }
+  document.getElementById('sheet').innerHTML = html;
+  const q = new URLSearchParams({ kind, ...(kind === 'practice' ? { range } : {}), ...(code ? { code } : {}) });
+  history.replaceState(null, '', 'qr.html?' + q);
+}
+document.querySelectorAll('[data-kind]').forEach(b => b.addEventListener('click', () => { kind = b.dataset.kind; paint(); }));
+document.querySelectorAll('[data-range]').forEach(b => b.addEventListener('click', () => { range = b.dataset.range; paint(); }));
+paint();
+</script>
+</body>
+</html>
