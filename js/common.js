@@ -29,8 +29,16 @@ export const store = {
   del(k) { try { localStorage.removeItem(k); } catch (e) { /* 무시 */ } }
 };
 
+// 문제 화면에서는 알림이 문제를 가리지 않도록 잠시 모아 두었다가 다음 화면에서 보여 줌
+const QUIET_SCREENS = new Set(['s-q']);
+let curScreen = '', heldToasts = [];
 export function show(id) {
   $$('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+  curScreen = id;
+  if (!QUIET_SCREENS.has(id) && heldToasts.length) {
+    const list = heldToasts; heldToasts = [];
+    list.forEach((a, k) => setTimeout(() => toast(...a), k * 400));
+  }
 }
 
 // ---------- 효과음 (Web Audio) ----------
@@ -72,6 +80,7 @@ export function muteButton(el) {
 
 // ---------- 토스트 ----------
 export function toast(msg, ms = 2600, cls = '') {
+  if (QUIET_SCREENS.has(curScreen)) { if (heldToasts.length < 6) heldToasts.push([msg, ms, cls]); return; }
   let box = $('#toasts');
   if (!box) { box = document.createElement('div'); box.id = 'toasts'; document.body.appendChild(box); }
   const t = document.createElement('div');

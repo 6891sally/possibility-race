@@ -208,13 +208,13 @@ eq('🏁 마지막 문제 2배 + ⚡ = 4배', calcGain({ correct: true, elapsedM
   eq('🌪️ 앞 친구 점수가 30점보다 적으면 있는 만큼만', [p.a.score, p.b.score], [0, 30]);
   let firstGust = 0, full = 0, tooMany = 0;
   for (let s = 0; s < 1000; s++) {
-    const pl = { a: { items: [] }, b: { items: [] }, c: { items: ['umbrella', 'booster'] } };
+    const pl = { a: { items: [] }, b: { items: [] }, c: { items: ['umbrella', 'booster', 'gust', 'magnifier', 'timestop'] } };
     const gifts = grantItems(pl, ['a', 'b', 'c'], makeRng(s), { booster: 1, gust: 1, umbrella: 1, magnifier: 1, timestop: 1 });
     if (gifts.a === 'gust') firstGust++;
     if (gifts.c !== null) full++;
-    if (Object.values(pl).some(x => x.items.length > 2)) tooMany++;
+    if (Object.values(pl).some(x => x.items.length > 5)) tooMany++;
   }
-  row(tb3, '아이템 상자: 1등은 돌풍을 받지 않음 / 2개면 더 안 줌', firstGust === 0 && full === 0 && tooMany === 0, `1등 돌풍 ${firstGust}, 꽉 찬 가방에 지급 ${full}, 3개 이상 ${tooMany}`);
+  row(tb3, '아이템 상자: 1등은 돌풍을 받지 않음 / 5개면 더 안 줌', firstGust === 0 && full === 0 && tooMany === 0, `1등 돌풍 ${firstGust}, 꽉 찬 가방에 지급 ${full}, 6개 이상 ${tooMany}`);
   const good = (idx) => { let g = 0; const r = makeRng(9); for (let i = 0; i < 5000; i++) { const it = pickItem(r, idx, 20, { booster: 1, gust: 1, umbrella: 1, magnifier: 1, timestop: 1 }, idx === 0); if (['booster', 'gust', 'timestop'].includes(it)) g++; } return g / 5000; };
   const top = good(0), bottom = good(19);
   row(tb3, '순위가 낮을수록 좋은 아이템(⚡🌪️⏱️) 확률 상승', bottom > top + 0.15, `1등 ${(top * 100).toFixed(0)}% → 꼴등 ${(bottom * 100).toFixed(0)}%`);

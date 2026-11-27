@@ -135,8 +135,15 @@ p { margin: 6px 0; }
 /* 아이템 칸 */
 .itembar { display: flex; gap: 12px; align-items: center; height: 76px; flex: 0 0 auto; margin-top: 10px; }
 .itembar .lab { font-size: 22px; color: var(--sub); }
-.itemslot { min-width: 200px; height: 68px; border-radius: 18px; border: 3px dashed #ced4da; background: #fff; font-size: 24px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; padding: 0 14px; }
-.itemslot .ic { font-size: 34px; }
+.itembar .lab { flex: 0 0 auto; width: 56px; line-height: 1.1; text-align: center; word-break: keep-all; }
+.itemslot { flex: 1 1 0; min-width: 0; max-width: 220px; height: 68px; border-radius: 18px; border: 3px dashed #ced4da; background: #fff; font-size: 21px; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; padding: 0 8px; }
+.itemslot .ic { font-size: 32px; flex: 0 0 auto; }
+.itemslot .nm { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; white-space: nowrap; }
+.itemslot .nm small { font-size: 15px; color: var(--sub); overflow: hidden; text-overflow: ellipsis; }
+#it-list .itemslot { flex: 0 0 196px; height: 80px; }
+#it-list .lab { font-size: 20px; color: var(--sub); width: 56px; text-align: center; line-height: 1.1; }
+#r-items { width: 100%; max-width: 1120px; }
+#r-items .itemslot { flex: 0 1 200px; }
 .itemslot.empty { color: #adb5bd; cursor: default; }
 .itemslot.can { border: 3px solid var(--purple); box-shadow: 0 4px 0 #d0bfff; }
 .itemslot.off { opacity: .45; cursor: default; }

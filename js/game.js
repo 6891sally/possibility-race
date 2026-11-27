@@ -6,7 +6,7 @@ export const RULE = {
   STREAK_FROM: 3,   // 3연속 정답부터
   STREAK_BONUS: 20, // 🔥 보너스
   GUST: 30,         // 돌풍으로 가져오는 점수
-  MAX_ITEMS: 2,     // 최대 보유 개수
+  MAX_ITEMS: 5,    // 최대 보유 개수
   GRACE_MS: 1500,   // 시간 종료 뒤 통신 지연 허용
   ITEM_EVERY: 3,    // 3문제마다 아이템 상자
   CONFIDENCE: 50,   // 🎯 확신 카드: 맞히면 +50

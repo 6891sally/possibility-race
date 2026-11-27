@@ -78,6 +78,7 @@
       <p style="font-size:36px" id="q-mine"></p>
       <p style="font-size:34px" id="q-waitmsg">기다려요… <span class="bounce">⏳</span></p>
       <button class="btn blue" id="q-change" style="display:none;margin-top:6px">✏️ 답 바꾸기</button>
+      <p class="sub" id="q-changenote" style="font-size:22px;margin:6px 0 0;display:none">바꾸면 속도 점수는 새로 낸 시각으로 계산해요</p>
     </div>
     <div class="overlay" id="q-pause"><div class="spurt" style="font-size:80px">⏸ 잠깐 멈췄어요</div><p style="font-size:34px">선생님을 봐요</p></div>
   </section>
@@ -96,7 +97,7 @@
     <h2 style="font-size:52px">🎁 아이템 상자!</h2>
     <div style="font-size:40px" id="it-gift"></div>
     <div class="rankbox" id="it-rank"></div>
-    <div class="row" id="it-list" style="gap:24px;margin-top:10px"></div>
+    <div class="row" id="it-list" style="gap:12px;margin-top:10px;flex-wrap:nowrap"></div>
     <p class="sub" id="it-help" style="font-size:24px;margin-top:16px"></p>
   </section>
 
@@ -394,7 +395,9 @@ function showDone() {
   paintChangeBtn();
 }
 function paintChangeBtn() {
-  $('#q-change').style.display = answered && allowChange() && timeLeft() > 0 && !st.paused ? '' : 'none';
+  const on = answered && allowChange() && timeLeft() > 0 && !st.paused;
+  $('#q-change').style.display = on ? '' : 'none';
+  $('#q-changenote').style.display = on ? '' : 'none';
 }
 $('#q-change').addEventListener('click', () => {
   if (!answered || timeLeft() <= 0) return;
@@ -405,7 +408,6 @@ $('#q-change').addEventListener('click', () => {
   markMine();
   $$('#q-body .choice').forEach(b => { if (b.classList.contains('picked')) { b.classList.remove('picked'); b.classList.add('prev'); } });
   if (questions[curQ].kind === 'order') $$('#q-body .choice').forEach(b => { b.classList.remove('ordered'); $('.badge', b).textContent = ''; });
-  toast('✏️ 다시 골라요! (바꾸면 속도 보너스는 새로 낸 시각으로 계산해요)', 2600);
   paintQItems();
 });
 let lastSec = -1;
@@ -427,7 +429,7 @@ function qTick() {
     if (over && curAns) { answered = true; ctl.lock(); markMine(); showDone(); }
     else {
       $('#q-done').classList.toggle('on', over);
-      if (over) { $('#q-done .spurt').textContent = '⏰ 시간 끝!'; $('#q-mine').textContent = ''; $('#q-change').style.display = 'none'; }
+      if (over) { $('#q-done .spurt').textContent = '⏰ 시간 끝!'; $('#q-mine').textContent = ''; $('#q-change').style.display = 'none'; $('#q-changenote').style.display = 'none'; }
     }
   } else paintChangeBtn();
 }
@@ -454,32 +456,36 @@ async function submit(i, choice) {
     curAns = prev;
     $('#q-done .spurt').textContent = prev ? '바꾸지 못했어요' : '⏰ 시간이 끝났어요';
     $('#q-mine').innerHTML = prev ? `내 답: <b>${fmt(myAnswerText(questions[i], prev.choice))}</b>` : '';
-    $('#q-change').style.display = 'none';
+    $('#q-change').style.display = 'none'; $('#q-changenote').style.display = 'none';
   }
 }
 
 // ---------------- 아이템 ----------------
 function ownedItems() { return myScore ? toArr(myScore.items) : []; }
-const slotHTML = (it, cls, note) => `<div class="itemslot ${cls}" data-it="${it}" title="${esc(ITEMS[it].desc)}"><span class="ic">${ITEMS[it].icon}</span>${ITEMS[it].name}${note ? `<small class="sub" style="font-size:18px">· ${note}</small>` : ''}</div>`;
+const slotHTML = (it, cls, note) => `<div class="itemslot ${cls}" data-it="${it}" title="${esc(ITEMS[it].desc)}"><span class="ic">${ITEMS[it].icon}</span><span class="nm">${ITEMS[it].name}${note ? `<small>${note}</small>` : ''}</span></div>`;
+const SLOTS = [...Array(RULE.MAX_ITEMS).keys()];
+const EMPTY_SLOT = `<div class="itemslot empty">빈 칸</div>`;
 const PASSIVE_NOTE = { umbrella: '자동으로 막아요', shield: '틀려도 연속 지켜요' };
 
 // 문제 화면 아이템 칸
 function paintQItems() {
   const q = questions[curQ];
   if (!q) return;
-  const items = ownedItems();
-  const slots = [0, 1].map(k => {
+  const items = ownedItems(), seen = new Set();
+  const slots = SLOTS.map(k => {
     const it = items[k];
-    if (!it) return `<div class="itemslot empty">빈 칸</div>`;
+    if (!it) return EMPTY_SLOT;
     const w = ITEMS[it].when;
     if (w === 'passive') return slotHTML(it, 'off', PASSIVE_NOTE[it]);
+    if (seen.has(it)) return slotHTML(it, 'off', '다음에 또 써요');
+    seen.add(it);
     if (w === 'itemtime') return slotHTML(it, 'off', '아이템 타임에');
     if (w === 'between') {
       if (myIntents[it]) return slotHTML(it, 'used', it === 'booster' ? '이번 문제 2배!' : '응원 중!');
       return slotHTML(it, 'off', '문제 전에 써요');
     }
     // 문제 풀 때 쓰는 아이템
-    if (myIntents[it]) return slotHTML(it, 'used', it === 'confidence' ? '맞히면 +50!' : '사용함');
+    if (myIntents[it]) return slotHTML(it, 'used', it === 'confidence' ? '맞히면 +50!' : it === 'timestop' ? '속도 점수 최대!' : '1개 지웠어요');
     if (it === 'magnifier') return magnifierOK(q) && !answered ? slotHTML(it, 'can', '') : slotHTML(it, 'off', answered ? '답을 냈어요' : '이 문제는 못 써요');
     return slotHTML(it, 'can', '');
   }).join('');
@@ -494,8 +500,7 @@ async function useQItem(it) {
   paintQItems();
   try { await db.set(`${R()}/intents/${i}/${uid}/${it}`, { at: db.TS }); } catch (e) { /* 이미 사용 */ }
   if (it === 'magnifier') ctl.remove(magnifierRemove(q, makeRng(hashSeed(st.seed + ':mag:' + i))));
-  if (it === 'timestop') toast('⏱️ 시간 정지! 맞히면 속도 보너스 최대!', 2200, 'gift');
-  if (it === 'confidence') toast('🎯 확신 카드! 맞히면 +50점 (틀려도 감점 없어요)', 2400, 'gift');
+  // 문제를 가리지 않도록 알림 대신 아이템 칸 안에서 알려 줌
 }
 
 // 문제 사이(정답 공개·달리기·아이템 타임)에 쓰는 아이템
@@ -528,10 +533,13 @@ async function betweenItemsHTML(el, inItemTime) {
   const cur = (await db.get(`${R()}/intents/${slot}/${uid}`)) || {};
   const nextExists = (st.qIndex || 0) + 1 < total();
   const isLast = myScore && myScore.rank && myScore.rank >= Object.keys(scores).length;
-  const html = [0, 1].map(k => {
+  const seen = new Set();
+  const html = SLOTS.map(k => {
     const it = items[k];
-    if (!it) return `<div class="itemslot empty">빈 칸</div>`;
+    if (!it) return EMPTY_SLOT;
     const w = ITEMS[it].when;
+    if (w !== 'passive' && seen.has(it)) return slotHTML(it, 'off', '다음에 또 써요');
+    seen.add(it);
     if (cur[it]) return slotHTML(it, 'used', it === 'booster' ? '다음 문제 2배!' : it === 'cheer' ? '응원 준비!' : '준비 완료');
     if (w === 'passive') return slotHTML(it, 'off', PASSIVE_NOTE[it]);
     if (w === 'question') return slotHTML(it, 'off', '문제 풀 때 써요');
@@ -588,7 +596,7 @@ function showItem() {
   const g = myScore && myScore.gift;
   if (g && g.slot === st.itemSlot) {
     $('#it-gift').innerHTML = ITEMS[g.item] ? `<span class="bounce">${ITEMS[g.item].icon}</span> <b>${ITEMS[g.item].name}</b>${eulReul(ITEMS[g.item].name)} 받았어요!<div class="sub" style="font-size:26px">${ITEMS[g.item].desc}</div>`
-      : g.item === 'full' ? '가방이 꽉 찼어요! (최대 2개)' : '이번 상자는 비어 있었어요. 다음 상자를 노려요! 🍀';
+      : g.item === 'full' ? `가방이 꽉 찼어요! (최대 ${RULE.MAX_ITEMS}개) 아이템을 써서 칸을 비워요` : '이번 상자는 비어 있었어요. 다음 상자를 노려요! 🍀';
   } else $('#it-gift').textContent = '상자를 여는 중…';
   $('#it-help').textContent = st.itemDone ? '아이템 타임이 끝났어요. 다음 문제를 기다려요!' : '🌪️ 돌풍·🎲 주사위는 지금! ⚡ 부스터·🤝 응원 깃발은 다음 문제를 위해 써요. ☂️ 우산·🛡️ 보호막은 갖고만 있으면 돼요.';
   paintMe();
