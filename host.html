@@ -23,26 +23,40 @@
 
   <!-- 설정 -->
   <section class="screen center" id="s-setup">
-    <h1>🏁 가능성 레이스 준비</h1>
-    <p class="sub" id="mode-lab" style="font-size:26px"></p>
-    <div class="setup-grid">
+    <h1 style="font-size:64px">🏁 가능성 레이스 준비</h1>
+    <p class="sub" id="mode-lab" style="font-size:24px;margin:0"></p>
+    <div class="setup-grid three">
       <div class="card" style="text-align:left">
         <div class="opt-title">📚 출제 범위</div>
         <div class="opts" id="o-range"></div>
-        <div class="opt-title" style="margin-top:22px">🔢 문제 수</div>
+        <div class="opt-title gap">🔢 문제 수</div>
         <div class="opts" id="o-total"></div>
-        <div class="opt-title" style="margin-top:22px">⏰ 제한 시간</div>
+        <div class="opt-title gap">⏰ 제한 시간</div>
         <div class="opts" id="o-limit"></div>
+        <div class="opt-title gap">✏️ 답 바꾸기</div>
+        <div class="opts" id="o-change"></div>
+        <p class="sub small-note">허용하면 시간 안에 몇 번이든 바꿀 수 있어요.<br>마지막 답과 마지막으로 낸 시각으로 채점해요.</p>
+      </div>
+      <div class="card" style="text-align:left">
+        <div class="opt-title">🏁 게임 방식</div>
+        <div class="opts" id="o-mode"></div>
+        <div id="team-opts">
+          <div class="opt-title gap">👥 모둠 수</div>
+          <div class="opts" id="o-teamcount"></div>
+          <div class="opt-title gap">🎲 모둠 정하기</div>
+          <div class="opts" id="o-teampick"></div>
+          <p class="sub small-note">모둠 점수 = 모둠원 점수의 <b>평균</b><br>(인원이 달라도 공평해요)</p>
+        </div>
       </div>
       <div class="card" style="text-align:left">
         <div class="opt-title">🎁 아이템 사용</div>
         <div class="opts" id="o-itemson"></div>
-        <div class="opt-title" style="margin-top:22px">아이템별 켜기/끄기</div>
-        <div class="opts" id="o-items"></div>
-        <p class="sub" style="font-size:24px;margin-top:16px">아이템 상자는 3문제마다 나와요.<br>마지막 문제는 모두 점수 2배 🏁</p>
+        <div class="opt-title gap">아이템별 켜기/끄기</div>
+        <div class="opts items" id="o-items"></div>
+        <p class="sub small-note">아이템 상자는 3문제마다 나와요. 마지막 문제는 모두 점수 2배 🏁</p>
       </div>
     </div>
-    <div class="row" style="margin-top:30px">
+    <div class="row" style="margin-top:22px">
       <button class="btn big" id="make">🚪 방 만들기</button>
       <button class="btn big blue" id="resume" style="display:none"></button>
       <button class="btn big green" id="apply" style="display:none">✔ 이 방에 적용하기</button>
@@ -69,6 +83,11 @@
         <button class="btn big green" id="l-start" disabled>▶ 시작</button>
       </div>
     </div>
+    <div class="teambar" id="l-teambar" style="display:none">
+      <button class="btn blue sm" id="l-draw">🎲 랜덤 모둠 뽑기</button>
+      <span id="l-teamsum" class="grow"></span>
+      <span class="sub" id="l-teamhelp" style="font-size:22px"></span>
+    </div>
     <div class="pgrid" id="l-grid"></div>
   </section>
 
@@ -84,7 +103,7 @@
     <div class="prompt" id="q-prompt"></div>
     <div id="q-body" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
     <div class="ctrl">
-      <div class="answered">답한 학생 <b id="q-ans">0</b> / <span id="q-tot">0</span></div>
+      <div class="answered">답한 학생 <b id="q-ans">0</b> / <span id="q-tot">0</span> <span class="sub" id="q-wait" style="font-size:26px"></span></div>
       <span class="grow"></span>
       <button class="btn white" id="q-pause">⏸ 일시정지</button>
       <button class="btn white" id="q-skip">⏭ 문제 건너뛰기</button>
@@ -112,7 +131,8 @@
         <div class="answer-big">정답: <span class="a" id="r-ans"></span></div>
         <div class="answered" style="text-align:center" id="r-sum"></div>
         <div class="bars" id="r-bars"></div>
-        <button class="btn big" id="r-race" style="margin-top:20px">🏃 달리기 보기</button>
+        <div class="evlist" id="r-ev"></div>
+        <button class="btn big" id="r-race" style="margin-top:14px">🏃 달리기 보기</button>
       </div>
     </div>
   </section>
@@ -123,6 +143,7 @@
       <span class="pill" id="t-no"></span>
       <span style="font-size:44px" id="t-title">🏃 달리기!</span>
       <span class="grow"></span>
+      <button class="btn white sm" id="t-view" style="display:none">👤 개인 보기</button>
       <button class="btn gray sm" id="t-reset">🔄 게임 초기화</button>
       <button class="btn big" id="t-next" style="min-height:70px;font-size:32px">다음 문제 ▶</button>
     </div>
@@ -138,21 +159,39 @@
       <button class="btn big" id="i-done" style="min-height:70px;font-size:32px">🌪️ 아이템 타임 끝내기</button>
       <button class="btn big green" id="i-next" style="min-height:70px;font-size:32px;display:none">다음 문제 ▶</button>
     </div>
-    <p style="font-size:30px;margin:8px 0" id="i-help">태블릿에서 아이템을 확인해요! ⚡ 두 배 부스터·🌪️ 돌풍은 지금 쓸 수 있어요.</p>
+    <p style="font-size:28px;margin:8px 0" id="i-help"></p>
     <div class="itemlog" id="i-log"></div>
   </section>
 
   <!-- 시상식 -->
   <section class="screen" id="s-end">
     <div class="topbar">
-      <span style="font-size:56px">🏆 시상식</span>
+      <span style="font-size:56px" id="e-title">🏆 시상식</span>
       <span class="grow"></span>
-      <button class="btn white" id="e-csv1">📄 학생별 결과 CSV</button>
-      <button class="btn white" id="e-csv2">📄 문항별 결과 CSV</button>
+      <button class="btn blue" id="e-review">📊 오답 복습</button>
+      <button class="btn white sm" id="e-csv1">📄 학생별 CSV</button>
+      <button class="btn white sm" id="e-csv2">📄 문항별 CSV</button>
+      <button class="btn white sm" id="e-csv3" style="display:none">📄 모둠별 CSV</button>
       <button class="btn" id="e-new">🔄 새 게임</button>
     </div>
     <div class="podium" id="e-podium"></div>
     <div class="awards" id="e-awards"></div>
+  </section>
+
+  <!-- 오답 복습 -->
+  <section class="screen" id="s-review">
+    <div class="topbar">
+      <span style="font-size:48px">📊 오답 복습</span>
+      <span class="pill" id="v-no"></span>
+      <span class="pill hot" id="v-rate"></span>
+      <span class="grow"></span>
+      <button class="btn blue" id="v-show">👀 정답 보기</button>
+      <button class="btn" id="v-next">다음 ▶</button>
+      <button class="btn white" id="v-back">🏆 시상식으로</button>
+    </div>
+    <div class="prompt" id="v-prompt"></div>
+    <div id="v-body" style="flex:1;display:flex;flex-direction:column;min-height:0"></div>
+    <div id="v-exp" style="margin-top:12px"></div>
   </section>
 
   <div class="overlay" id="spurt-ov"><div class="spurt">🏁 결승 직전 스퍼트!</div><p style="font-size:50px">마지막 문제는 모두 점수 2배!</p></div>
@@ -161,7 +200,8 @@
 <script type="module">
 import * as db from './js/db.js';
 import { generate, isCorrect, answerText, choiceText, TYPE_NAMES, rangeLabel, makeRng, hashSeed } from './js/questions.js';
-import { RULE, ITEMS, ITEM_KEYS, calcGain, maxScore, rankPlayers, toArr, grantItems, applyGusts, awards, avgTime, consumeItems } from './js/game.js';
+import { RULE, ITEMS, ITEM_KEYS, TEAMS, calcGain, maxScore, rankPlayers, toArr, grantItems, applyGusts, awards, avgTime,
+  consumeItems, applyShield, resolveCheers, rollDice, assignTeams, smallestTeam, teamStandings } from './js/game.js';
 import { $, $$, esc, fmt, show, sfx, muteButton, toast, questionBodyHTML, markChoices, explainHTML, store, fitStage, downloadCSV, CHARS } from './js/common.js';
 import { qrSVG } from './js/qr.js';
 
@@ -169,14 +209,18 @@ fitStage($('#stage'), 1920, 1080);
 muteButton($('#mute'));
 
 const PASSWORD = '0520';
-let uid = null, code = null;
-let settings = store.get('pr_host_settings', null) || {
-  range: [5, 6], total: 10, limit: 20, itemsOn: true,
-  items: { booster: true, gust: true, umbrella: true, magnifier: true, timestop: true }
+const DEFAULTS = {
+  range: [5, 6], total: 10, limit: 20, itemsOn: true, allowChange: true,
+  mode: 'solo', teamCount: 4, teamPick: 'random',
+  items: Object.fromEntries(ITEM_KEYS.map(k => [k, true]))
 };
+const mergeSettings = (s) => ({ ...DEFAULTS, ...(s || {}), items: { ...DEFAULTS.items, ...((s && s.items) || {}) }, range: toArr((s && s.range) || DEFAULTS.range).map(Number) });
+let uid = null, code = null;
+let settings = mergeSettings(store.get('pr_host_settings', null));
 let st = {};            // rooms/{code}/state
 let players = {};       // rooms/{code}/players
 let scores = {};        // 교사 화면이 계산해서 쓰는 점수
+let teams = {};         // uid → 모둠 번호
 let questions = [];
 let qstats = {};
 let answersNow = {};
@@ -184,8 +228,12 @@ let pauses = [];        // [{at, dur}] 이번 문제 일시정지 기록
 let pauseAt = 0;
 let revealing = false, phase = 'lock';
 let prevSnap = {};
+let raceView = 'team';
 let unsubAns = null, unsubIntent = null;
 const R = () => 'rooms/' + code;
+const isTeam = () => settings.mode === 'team';
+// 체험 모드(?demo=1)로 연 교사 화면이면 학생 QR 주소에도 demo를 붙임
+const demoQ = new URLSearchParams(location.search).has('demo') ? '&demo=1' : '';
 
 // ---------------- 잠금 ----------------
 let typed = '';
@@ -193,7 +241,7 @@ $('#lockpad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, '⌫', 0, '✔'].map(k => 
 $$('#lockpad button').forEach(b => b.addEventListener('click', () => {
   const k = b.dataset.k; sfx.tap();
   if (k === '⌫') typed = typed.slice(0, -1);
-  else if (k === '✔') { /* 아래에서 확인 */ }
+  else if (k === '✔') { /* 4자리가 되면 자동 확인 */ }
   else if (typed.length < 4) typed += k;
   $$('#dots i').forEach((d, i) => d.classList.toggle('on', i < typed.length));
   if (typed.length === 4) {
@@ -215,6 +263,11 @@ function paintSetup() {
   }, true);
   opt($('#o-total'), [5, 10, 15, 20].map(v => ({ v, label: `${v}문제` })), it => settings.total === it.v, it => { settings.total = it.v; });
   opt($('#o-limit'), [10, 15, 20, 30].map(v => ({ v, label: `${v}초` })), it => settings.limit === it.v, it => { settings.limit = it.v; });
+  opt($('#o-change'), [{ v: true, label: '허용' }, { v: false, label: '한 번만' }], it => settings.allowChange === it.v, it => { settings.allowChange = it.v; });
+  opt($('#o-mode'), [{ v: 'solo', label: '🏃 개인전' }, { v: 'team', label: '👥 모둠 대항전' }], it => settings.mode === it.v, it => { settings.mode = it.v; });
+  opt($('#o-teamcount'), [2, 3, 4, 5, 6, 7, 8].map(v => ({ v, label: `${v}` })), it => settings.teamCount === it.v, it => { settings.teamCount = it.v; });
+  opt($('#o-teampick'), [{ v: 'random', label: '🎲 랜덤 뽑기' }, { v: 'manual', label: '✋ 선생님이 지정' }], it => settings.teamPick === it.v, it => { settings.teamPick = it.v; });
+  $('#team-opts').style.display = isTeam() ? '' : 'none';
   opt($('#o-itemson'), [{ v: true, label: '켜기' }, { v: false, label: '끄기' }], it => settings.itemsOn === it.v, it => { settings.itemsOn = it.v; });
   opt($('#o-items'), ITEM_KEYS.map(k => ({ v: k, label: `${ITEMS[k].icon} ${ITEMS[k].name}` })), it => settings.items[it.v], it => { settings.items[it.v] = !settings.items[it.v]; }, true);
   $('#o-items').style.opacity = settings.itemsOn ? 1 : .4;
@@ -229,7 +282,7 @@ async function boot() {
     const info = await db.init();
     uid = info.uid;
     $('#mode-lab').textContent = info.mode === 'demo'
-      ? '⚠️ 체험 모드: js/firebase-config.js가 비어 있어서 이 브라우저 안에서만 연결돼요.'
+      ? '⚠️ 체험 모드: 이 브라우저의 탭끼리만 연결돼요. (학생 탭도 주소 끝에 ?demo=1)'
       : '✅ Firebase에 연결되었어요.';
     const saved = store.get('pr_host_room', null);
     if (saved) {
@@ -262,6 +315,7 @@ $('#make').addEventListener('click', async () => {
     }
     if (!c) throw new Error('방 코드를 만들지 못했어요');
     code = c;
+    teams = {};
     await db.set(R(), {
       meta: { hostUid: uid, createdAt: db.TS },
       state: { status: 'lobby', qIndex: -1, qKey: '-1', seed: newSeed(), settings, startedAt: 0, pauseTotal: 0, paused: false }
@@ -279,11 +333,12 @@ const newSeed = () => Math.floor(Math.random() * 2147483647);
 let subscribed = false;
 async function enterRoom(resume) {
   st = (await db.get(R() + '/state')) || {};
-  if (st.settings) settings = Object.assign(settings, st.settings, { range: toArr(st.settings.range).map(Number) });
+  if (st.settings) settings = mergeSettings(st.settings);
   scores = (await db.get(R() + '/scores')) || {};
   for (const u in scores) scores[u].items = toArr(scores[u].items);
   qstats = (await db.get(R() + '/qstats')) || {};
   players = (await db.get(R() + '/players')) || {};
+  teams = (await db.get(R() + '/teams')) || {};
   questions = generate(settings.range, settings.total, st.seed);
   if (!subscribed) {
     subscribed = true;
@@ -297,15 +352,26 @@ async function enterRoom(resume) {
   if (st.status === 'end') return renderEnd();
 }
 
-const blankScore = () => ({ score: 0, streak: 0, maxStreak: 0, correct: 0, answered: 0, timeSum: 0, correctTime: 0, items: [], worstRank: 0, rank: 0 });
+const blankScore = () => ({ score: 0, streak: 0, maxStreak: 0, correct: 0, answered: 0, timeSum: 0, correctTime: 0, items: [], worstRank: 0, rank: 0, changes: 0, flip: 0, res: '' });
 function onPlayers() {
   const add = {};
-  for (const u in players) if (!scores[u]) { scores[u] = blankScore(); add['scores/' + u] = scores[u]; }
+  for (const u in players) {
+    if (!scores[u]) { scores[u] = blankScore(); add['scores/' + u] = scores[u]; }
+    // 모둠 대항전: 모둠이 정해진 뒤 늦게 온 학생은 인원이 가장 적은 모둠으로
+    if (isTeam() && teams[u] == null && (settings.teamPick === 'random' ? Object.keys(teams).length > 0 : phase !== 'lobby')) {
+      teams[u] = smallestTeam(teams, settings.teamCount); add['teams/' + u] = teams[u];
+    }
+  }
   if (Object.keys(add).length) db.update(R(), add);
   if (phase === 'lobby') renderLobby();
   if (phase === 'question') paintAnswered();
 }
 const active = () => Object.keys(players).filter(u => scores[u]);
+const teamOfMap = () => (isTeam() ? teams : null);
+const teamLabel = (t) => (t == null || !TEAMS[t]) ? '❔ 모둠?' : `${TEAMS[t].icon} ${TEAMS[t].name}`;
+function standings(src = scores) {
+  return teamStandings(active().map(u => ({ uid: u, team: teams[u], ...(src[u] || {}) })), settings.teamCount);
+}
 
 // ---------------- 대기실 ----------------
 function renderLobby() {
@@ -315,44 +381,84 @@ function renderLobby() {
   $('#l-url').textContent = base.replace(/^https?:\/\//, '') + 'play.html';
   if ($('#l-qr').dataset.code !== code) {
     $('#l-qr').dataset.code = code;
-    $('#l-qr').innerHTML = qrSVG(base + 'play.html?code=' + code, { quiet: 2 }).replace('<svg', '<svg style="width:100%;height:100%;display:block"');
+    $('#l-qr').innerHTML = qrSVG(base + 'play.html?code=' + code + demoQ, { quiet: 2 }).replace('<svg', '<svg style="width:100%;height:100%;display:block"');
     $('#l-print').href = 'qr.html?kind=race&code=' + code;
   }
-  $('#l-set').textContent = `범위 ${rangeLabel(settings.range)} · ${settings.total}문제 · ${settings.limit}초 · 아이템 ${itemsEnabled() ? '켜짐' : '꺼짐'}`;
-  const list = Object.entries(players).map(([u, p]) => ({ u, ...p })).sort((a, b) => a.num - b.num || a.joinedAt - b.joinedAt);
+  $('#l-set').textContent = `${isTeam() ? `👥 모둠 대항전(${settings.teamCount}모둠)` : '🏃 개인전'} · 범위 ${rangeLabel(settings.range)} · ${settings.total}문제 · ${settings.limit}초 · 아이템 ${itemsEnabled() ? '켜짐' : '꺼짐'}`;
+  const list = Object.entries(players).map(([u, p]) => ({ u, ...p }))
+    .sort((a, b) => (isTeam() ? ((teams[a.u] ?? 99) - (teams[b.u] ?? 99)) : 0) || a.num - b.num || a.joinedAt - b.joinedAt);
   const cnt = {}; list.forEach(p => { cnt[p.num] = (cnt[p.num] || 0) + 1; });
   const dups = Object.keys(cnt).filter(n => cnt[n] > 1);
   $('#l-count').textContent = `${list.length}명 입장`;
   $('#l-dup').textContent = dups.length ? `⚠️ 같은 번호가 있어요: ${dups.join(', ')}번` : ' ';
   $('#l-start').disabled = list.length === 0;
-  $('#l-grid').innerHTML = list.map(p => `<div class="pcard ${cnt[p.num] > 1 ? 'dup' : ''}"><span class="em">${CHARS[p.char] || '🙂'}</span><span class="nm">${esc(p.name)}<small>${p.num}번</small></span><button class="kick" data-u="${p.u}">내보내기</button></div>`).join('');
+  // 모둠
+  $('#l-teambar').style.display = isTeam() ? '' : 'none';
+  if (isTeam()) {
+    const n = new Array(settings.teamCount).fill(0); let none = 0;
+    list.forEach(p => { const t = teams[p.u]; if (t != null && t < settings.teamCount) n[t]++; else none++; });
+    $('#l-teamsum').innerHTML = n.map((c, t) => `<span class="tsum" style="border-color:${TEAMS[t].color}">${TEAMS[t].icon} ${TEAMS[t].name} ${c}명</span>`).join('') + (none ? `<span class="tsum">❔ ${none}명</span>` : '');
+    $('#l-draw').textContent = Object.keys(teams).length ? '🎲 다시 뽑기' : '🎲 랜덤 모둠 뽑기';
+    $('#l-teamhelp').textContent = settings.teamPick === 'manual' ? '카드의 모둠 표시를 누르면 모둠이 바뀌어요' : '시작하면 아직 안 뽑은 경우 자동으로 뽑아요 · 모둠 표시를 눌러 바꿀 수도 있어요';
+  }
+  $('#l-grid').innerHTML = list.map(p => {
+    const t = teams[p.u];
+    const tc = isTeam() && t != null && TEAMS[t] ? `style="border-color:${TEAMS[t].color};box-shadow:inset 0 -8px 0 ${TEAMS[t].color}55"` : '';
+    return `<div class="pcard ${cnt[p.num] > 1 ? 'dup' : ''}" ${tc}>` +
+      (isTeam() ? `<button class="tbadge" data-u="${p.u}" style="background:${t != null && TEAMS[t] ? TEAMS[t].color : '#adb5bd'}">${teamLabel(t)}</button>` : '') +
+      `<span class="em">${CHARS[p.char] || '🙂'}</span><span class="nm">${esc(p.name)}<small>${p.num}번</small></span><button class="kick" data-u="${p.u}">내보내기</button></div>`;
+  }).join('');
   $$('#l-grid .kick').forEach(b => b.addEventListener('click', () => kick(b.dataset.u)));
+  $$('#l-grid .tbadge').forEach(b => b.addEventListener('click', () => cycleTeam(b.dataset.u)));
 }
 async function kick(u) {
   const p = players[u]; if (!p) return;
   if (!confirm(`${p.num}번 ${p.name} 학생을 내보낼까요?`)) return;
-  delete scores[u];
-  await db.update(R(), { ['players/' + u]: null, ['scores/' + u]: null });
+  delete scores[u]; delete teams[u];
+  await db.update(R(), { ['players/' + u]: null, ['scores/' + u]: null, ['teams/' + u]: null });
 }
+async function cycleTeam(u) {
+  const t = teams[u];
+  teams[u] = t == null ? 0 : (t + 1) % settings.teamCount;
+  sfx.tap();
+  await db.update(R(), { ['teams/' + u]: teams[u] });
+  renderLobby();
+}
+async function drawTeams() {
+  teams = assignTeams(active(), settings.teamCount, makeRng(newSeed()));
+  await db.set(R() + '/teams', teams);
+  sfx.item();
+  renderLobby();
+}
+$('#l-draw').addEventListener('click', drawTeams);
 $('#l-edit').addEventListener('click', () => {
   phase = 'setup'; show('s-setup'); paintSetup();
   $('#make').style.display = 'none'; $('#resume').style.display = 'none'; $('#apply').style.display = '';
 });
 $('#apply').addEventListener('click', async () => {
-  await db.update(R(), { 'state/settings': settings });
+  const upd = { 'state/settings': settings };
+  // 모둠 수를 줄였으면 없어진 모둠에 있던 학생은 다시 정하기
+  for (const u in teams) if (teams[u] >= settings.teamCount) { delete teams[u]; upd['teams/' + u] = null; }
+  await db.update(R(), upd);
   st.settings = settings;
   questions = generate(settings.range, settings.total, st.seed);
   $('#make').style.display = ''; $('#apply').style.display = 'none';
   renderLobby();
 });
 $('#l-start').addEventListener('click', async () => {
+  if (isTeam()) {
+    if (settings.teamPick === 'random' && !Object.keys(teams).length) await drawTeams();
+    const upd = {};
+    for (const u of active()) if (teams[u] == null) { teams[u] = smallestTeam(teams, settings.teamCount); upd['teams/' + u] = teams[u]; }
+    if (Object.keys(upd).length) { await db.update(R(), upd); toast('모둠이 없던 학생을 인원이 적은 모둠에 넣었어요'); }
+  }
   questions = generate(settings.range, settings.total, st.seed);
   sfx.start();
   await startQuestion(0);
 });
 
 // ---------------- 문제 진행 ----------------
-let tickTimer = null;
+let tickTimer = null, allTimer = null;
 async function startQuestion(i, resume = false) {
   revealing = false; pauses = []; answersNow = {};
   const last = i === settings.total - 1;
@@ -381,11 +487,22 @@ async function startQuestion(i, resume = false) {
   tickTimer = setInterval(tick, 200);
   tick();
 }
+// 모두 답하면 정답 공개. 답 바꾸기를 허용하면 3초 기다렸다가(그사이 바꿀 수 있게) 공개
 function paintAnswered() {
   const act = active();
   const n = act.filter(u => answersNow[u]).length;
   $('#q-ans').textContent = n; $('#q-tot').textContent = act.length;
-  if (phase === 'question' && act.length > 0 && n >= act.length && !st.paused) setTimeout(() => { if (phase === 'question') reveal(); }, 700);
+  const all = phase === 'question' && act.length > 0 && n >= act.length && !st.paused;
+  if (all && !allTimer) {
+    const wait = settings.allowChange ? 3000 : 700;
+    $('#q-wait').textContent = settings.allowChange ? '모두 냈어요! 3초 뒤 정답 공개' : '';
+    allTimer = setTimeout(() => {
+      allTimer = null; $('#q-wait').textContent = '';
+      const a2 = active();
+      if (phase === 'question' && !st.paused && a2.length && a2.every(u => answersNow[u])) reveal();
+    }, wait);
+  }
+  if (!all && allTimer) { clearTimeout(allTimer); allTimer = null; $('#q-wait').textContent = ''; }
 }
 let lastSec = -1;
 function tick() {
@@ -415,6 +532,7 @@ $('#q-resume').addEventListener('click', async () => {
   st.paused = false; st.pauseTotal = total;
   $('#pause-ov').classList.remove('on');
   await db.update(R(), { 'state/paused': false, 'state/pauseTotal': total });
+  paintAnswered();
 });
 $('#q-skip').addEventListener('click', async () => {
   if (phase !== 'question') return;
@@ -439,26 +557,32 @@ function applyRanks() {
 }
 function snapshot() {
   const s = {};
-  for (const u in scores) s[u] = { score: scores[u].score || 0, rank: scores[u].rank || 0 };
+  for (const u in scores) s[u] = { score: scores[u].score || 0, rank: scores[u].rank || 0, timeSum: scores[u].timeSum || 0, answered: scores[u].answered || 0 };
   return s;
 }
+const nm = u => players[u] ? `${players[u].num}번 ${esc(players[u].name)}` : '?';
+const evData = (ev) => ({ ...ev, to: ev.to || '', item: ev.item || '', fromNum: players[ev.from] ? players[ev.from].num : 0, toNum: ev.to && players[ev.to] ? players[ev.to].num : 0, at: db.TS });
 
 async function reveal() {
   if (revealing || phase !== 'question') return;
   revealing = true; phase = 'reveal'; clearInterval(tickTimer);
+  if (allTimer) { clearTimeout(allTimer); allTimer = null; $('#q-wait').textContent = ''; }
   const i = st.qIndex, q = questions[i];
   const answers = (await db.get(R() + '/answers/' + i)) || {};
   const intents = (await db.get(R() + '/intents/' + i)) || {};
   const limitMs = settings.limit * 1000;
   const spurt = i === settings.total - 1;
   prevSnap = snapshot();
+  const orderBefore = rankedUids();
   const counts = q.choices.map(() => 0);
-  let orderRight = 0, orderWrong = 0, nCorrect = 0, nAnswered = 0;
+  let orderRight = 0, orderWrong = 0, nCorrect = 0, nAnswered = 0, nChanged = 0, nFlip = 0;
+  const correctMap = {}, cheerUsers = [], events = [];
   for (const u of active()) {
     const s = scores[u], a = answers[u], it = intents[u] || {};
     const used = consumeItems(s.items, it);
-    const booster = used.booster, timestop = used.timestop;
+    const { booster, timestop, confidence } = used;
     s.items = used.items;
+    if (used.cheer) cheerUsers.push(u);
     let correct = false, elapsed = limitMs, valid = false;
     if (a && typeof a.answeredAt === 'number') {
       elapsed = Math.max(0, a.answeredAt - st.startedAt - pauseBefore(a.answeredAt));
@@ -468,18 +592,44 @@ async function reveal() {
         nAnswered++;
         if (q.kind === 'order') { correct ? orderRight++ : orderWrong++; }
         else if (counts[+a.choice] != null) counts[+a.choice]++;
+        // 답 바꾸기 기록
+        const ch = +a.changes || 0;
+        if (ch > 0) {
+          nChanged++; s.changes = (s.changes || 0) + ch;
+          if (a.first != null && isCorrect(q, a.first) && !correct) { nFlip++; s.flip = (s.flip || 0) + 1; }
+        }
       }
     }
-    const g = calcGain({ correct, elapsedMs: elapsed, limitMs, streakBefore: s.streak || 0, booster, timestop, spurt });
+    correctMap[u] = correct;
+    const g = calcGain({ correct, elapsedMs: elapsed, limitMs, streakBefore: s.streak || 0, booster, timestop, spurt, confidence });
+    // 🛡️ 연속 보호막 (틀렸을 때 자동)
+    const sh = applyShield(s.streak || 0, correct, s.items);
+    s.items = sh.items;
+    if (sh.used) events.push({ type: 'shield', from: u, keep: sh.streak });
     s.score = (s.score || 0) + g.gained;
-    s.streak = g.streak; s.maxStreak = Math.max(s.maxStreak || 0, g.streak);
+    s.streak = correct ? g.streak : sh.streak;
+    s.maxStreak = Math.max(s.maxStreak || 0, s.streak);
     if (valid) { s.answered = (s.answered || 0) + 1; s.timeSum = (s.timeSum || 0) + elapsed; }
     if (correct) { nCorrect++; s.correct = (s.correct || 0) + 1; s.correctTime = (s.correctTime || 0) + elapsed; }
-    s.last = { q: i, correct, answered: valid, gained: g.gained, speed: g.speed, streakBonus: g.streakBonus, mult: g.mult, booster, timestop, spurt, choice: a ? String(a.choice) : '' };
+    s.res = (s.res || '').padEnd(i, '-').slice(0, i) + (correct ? 'O' : valid ? 'X' : '-');
+    s.last = { q: i, correct, answered: valid, gained: g.gained, speed: g.speed, streakBonus: g.streakBonus, mult: g.mult, conf: g.conf, booster, timestop, confidence, spurt,
+      shield: sh.used, cheerGain: 0, cheeredBy: 0, choice: a ? String(a.choice) : '' };
+  }
+  // 🤝 응원 깃발: 문제 전 순위에서 바로 뒤 친구가 맞혔으면 둘 다 +30
+  for (const ev of resolveCheers(orderBefore, cheerUsers, correctMap)) {
+    if (ev.refund) { scores[ev.from].items = toArr(scores[ev.from].items).concat('cheer').slice(0, RULE.MAX_ITEMS); continue; }
+    if (ev.success) {
+      for (const x of [ev.from, ev.to]) { scores[x].score += ev.amount; scores[x].last.gained += ev.amount; }
+      scores[ev.from].last.cheerGain += ev.amount;
+      scores[ev.to].last.cheeredBy = players[ev.from] ? players[ev.from].num : 0;
+    }
+    events.push(ev);
   }
   applyRanks();
-  qstats[i] = { type: q.type, lesson: q.lesson, correct: nCorrect, answered: nAnswered, total: active().length };
-  await db.update(R(), { scores, ['qstats/' + i]: qstats[i], 'state/status': 'reveal' });
+  qstats[i] = { type: q.type, lesson: q.lesson, correct: nCorrect, answered: nAnswered, total: active().length, changed: nChanged, flip: nFlip };
+  const upd = { scores, ['qstats/' + i]: qstats[i], 'state/status': 'reveal' };
+  events.forEach((ev, k) => { upd[`events/q${i}_${k}`] = evData(ev); });
+  await db.update(R(), upd);
   nCorrect ? sfx.correct() : sfx.wrong();
 
   // 화면
@@ -491,13 +641,16 @@ async function reveal() {
   markChoices($('#r-body'), q, null);
   $('#r-exp').innerHTML = explainHTML(q);
   $('#r-ans').innerHTML = fmt(answerText(q));
-  $('#r-sum').innerHTML = `정답 <b>${nCorrect}</b>명 / 답한 학생 ${nAnswered}명`;
+  $('#r-sum').innerHTML = `정답 <b>${nCorrect}</b>명 / 답한 학생 ${nAnswered}명` + (nChanged ? `<div class="sub" style="font-size:24px">✏️ 답을 바꾼 학생 ${nChanged}명${nFlip ? ` (맞았다가 바꿔서 틀림 ${nFlip}명)` : ''}</div>` : '');
   let bars;
   if (q.kind === 'order') bars = [{ l: '정답 순서', n: orderRight, ok: true }, { l: '다른 순서', n: orderWrong, ok: false }];
   else bars = q.choices.map((c, k) => ({ l: fmt(choiceText(c)), n: counts[k], ok: k === q.answer }));
   const mx = Math.max(1, ...bars.map(b => b.n));
   $('#r-bars').innerHTML = bars.map(b => `<div class="bar ${b.ok ? 'right' : ''}"><div class="bl">${b.ok ? '✅ ' : ''}${b.l}</div><div class="bt"><i style="width:0"></i></div><div class="bn">${b.n}명</div></div>`).join('');
   requestAnimationFrame(() => setTimeout(() => $$('#r-bars .bt i').forEach((el, k) => { el.style.width = (bars[k].n / mx * 100) + '%'; }), 50));
+  $('#r-ev').innerHTML = events.filter(e => !e.refund).slice(0, 6).map(e => e.type === 'shield'
+    ? `<div>🛡️ ${nm(e.from)}: 보호막으로 🔥${e.keep}연속 지킴</div>`
+    : `<div>🤝 ${nm(e.from)} → ${nm(e.to)}: ${e.success ? `응원 성공! 둘 다 +${e.amount}` : '응원했지만 아쉬워요'}</div>`).join('');
 }
 
 $('#r-race').addEventListener('click', async () => {
@@ -517,35 +670,68 @@ function renderRace() {
     $('#t-next').onclick = null;
     if (last) finishGame(); else if (itemNow) startItem(); else startQuestion(i + 1);
   };
-  drawTrack(prevSnap);
+  $('#t-view').style.display = isTeam() ? '' : 'none';
+  if (!isTeam()) raceView = 'solo';
+  paintRaceView();
 }
-function drawTrack(prev) {
+function paintRaceView() {
+  $('#t-view').textContent = raceView === 'team' ? '👤 개인 보기' : '👥 모둠 보기';
+  $('#t-title').textContent = raceView === 'team' ? '👥 모둠 달리기! (모둠 평균 점수)' : '🏃 달리기!';
+  if (raceView === 'team') drawTeamTrack(prevSnap); else drawTrack(prevSnap);
+}
+$('#t-view').addEventListener('click', () => { raceView = raceView === 'team' ? 'solo' : 'team'; paintRaceView(); });
+
+function laneBox(n, maxH = 130) {
   const track = $('#track');
-  const list = active().map(u => ({ u, ...players[u], s: scores[u] })).sort((a, b) => a.num - b.num || a.joinedAt - b.joinedAt);
   const H = track.clientHeight, W = track.clientWidth;
-  const n = Math.max(1, list.length);
-  const laneH = Math.min(130, Math.floor(H / n));
-  const fs = Math.max(13, Math.min(34, Math.floor(laneH * 0.42)));
+  const laneH = Math.min(maxH, Math.floor(H / Math.max(1, n)));
+  const fs = Math.max(13, Math.min(40, Math.floor(laneH * 0.3)));
   const em = Math.floor(laneH * 0.78);
   const finish = maxScore(settings.total);
-  const plateW = Math.min(360, fs * 11);
+  const plateW = Math.min(380, fs * 11.5);
   const startX = plateW + 16, endX = W - 120 - em;
-  const xOf = (sc) => startX + Math.min(1.02, (sc || 0) / finish) * (endX - startX);
-  track.innerHTML = `<div class="finish"></div><div class="finish-lab">🏁</div>` + list.map((p, k) =>
-    `<div class="lane" style="top:${k * laneH}px;height:${laneH}px;font-size:${fs}px"><div class="plate" style="width:${plateW}px"><span class="rk">${p.s.rank || '-'}등</span><span class="pn">${p.num} ${esc(p.name)}</span></div>` +
-    `<div class="runner" data-u="${p.u}" style="left:${xOf(prev[p.u] ? prev[p.u].score : 0)}px"><span class="em" style="font-size:${em}px">${CHARS[p.char] || '🙂'}</span>` +
-    `<span class="tag">${p.s.score}점</span>${(p.s.streak || 0) >= RULE.STREAK_FROM ? `<span class="fire">🔥${p.s.streak}</span>` : ''}</div></div>`).join('');
+  return { track, laneH, fs, em, xOf: (sc) => startX + Math.min(1.02, (sc || 0) / finish) * (endX - startX), plateW };
+}
+function animateRunners(track, getNew, getPrevRank, getRank) {
   track.offsetWidth; // 다시 그리기
   setTimeout(() => {
     $$('.runner', track).forEach(r => {
-      const u = r.dataset.u, s = scores[u];
+      const k = r.dataset.k;
       r.classList.add('moving');
-      r.style.left = xOf(s.score) + 'px';
-      if (prev[u] && prev[u].rank && s.rank < prev[u].rank) r.classList.add('pass');
+      r.style.left = getNew(k) + 'px';
+      const pr = getPrevRank(k), nr = getRank(k);
+      if (pr && nr < pr) r.classList.add('pass');
       setTimeout(() => r.classList.remove('moving'), 2300);
     });
     sfx.start();
   }, 120);
+}
+function drawTrack(prev) {
+  const list = active().map(u => ({ u, ...players[u], s: scores[u] })).sort((a, b) => a.num - b.num || a.joinedAt - b.joinedAt);
+  const { track, laneH, fs, em, xOf, plateW } = laneBox(list.length);
+  track.innerHTML = `<div class="finish"></div><div class="finish-lab">🏁</div>` + list.map((p, k) => {
+    const t = teams[p.u];
+    const tdot = isTeam() && TEAMS[t] ? `<span>${TEAMS[t].icon}</span>` : '';
+    return `<div class="lane" style="top:${k * laneH}px;height:${laneH}px;font-size:${fs}px"><div class="plate" style="width:${plateW}px"><span class="rk">${p.s.rank || '-'}등</span>${tdot}<span class="pn">${p.num} ${esc(p.name)}</span></div>` +
+      `<div class="runner" data-k="${p.u}" style="left:${xOf(prev[p.u] ? prev[p.u].score : 0)}px"><span class="em" style="font-size:${em}px">${CHARS[p.char] || '🙂'}</span>` +
+      `<span class="tag">${p.s.score}점</span>${(p.s.streak || 0) >= RULE.STREAK_FROM ? `<span class="fire">🔥${p.s.streak}</span>` : ''}</div></div>`;
+  }).join('');
+  animateRunners(track, u => xOf(scores[u].score), u => prev[u] && prev[u].rank, u => scores[u].rank);
+}
+function drawTeamTrack(prev) {
+  const now = standings(), before = standings(prev);
+  const rows = now.slice().sort((a, b) => a.team - b.team);
+  const pb = {}; before.forEach(x => { pb[x.team] = x; });
+  const nb = {}; now.forEach(x => { nb[x.team] = x; });
+  const { track, laneH, fs, em, xOf, plateW } = laneBox(rows.length, 210);
+  track.innerHTML = `<div class="finish"></div><div class="finish-lab">🏁</div>` + rows.map((x, k) => {
+    const T = TEAMS[x.team];
+    const faces = x.members.slice(0, 8).map(u => CHARS[players[u] && players[u].char] || '🙂').join('');
+    return `<div class="lane" style="top:${k * laneH}px;height:${laneH}px;font-size:${fs}px;background:${T.color}22"><div class="plate" style="width:${plateW}px"><span class="rk">${x.rank}등</span><span class="pn">${T.icon} ${T.name} <small style="font-size:.7em">${x.size}명</small></span></div>` +
+      `<div class="runner" data-k="${x.team}" style="left:${xOf(pb[x.team] ? pb[x.team].avg : 0)}px"><span class="em" style="font-size:${em}px;transform:none">${T.icon}</span>` +
+      `<span class="tag">평균 ${Math.round(x.avg)}점</span><span style="font-size:.8em">${faces}</span></div></div>`;
+  }).join('');
+  animateRunners(track, t => xOf(nb[t].avg), t => pb[t] && pb[t].rank, t => nb[t].rank);
 }
 
 // ---------------- 아이템 타임 ----------------
@@ -554,23 +740,26 @@ async function startItem() {
   const ranking = rankedUids();
   const rng = makeRng(hashSeed(st.seed + ':item:' + i));
   const gifts = grantItems(scores, ranking, rng, enabledMap());
-  for (const u of ranking) scores[u].gift = { slot, item: gifts[u] || '' };
+  // item: 받은 아이템 / 'full' 가방이 꽉 참 / '' 받을 수 있는 아이템이 없음(예: 꼴등인데 켜진 아이템이 응원 깃발뿐)
+  for (const u of ranking) scores[u].gift = { slot, item: gifts[u] || (toArr(scores[u].items).length >= RULE.MAX_ITEMS ? 'full' : '') };
   await db.update(R(), { scores, 'state/status': 'item', 'state/itemSlot': slot, 'state/itemDone': false });
   Object.assign(st, { status: 'item', itemSlot: slot, itemDone: false });
   sfx.item();
   renderItem();
 }
+const NOW_ITEMS = ['booster', 'cheer', 'gust', 'dice'];
 function renderItem() {
   phase = 'item'; show('s-item');
   const slot = st.itemSlot;
   $('#i-done').style.display = st.itemDone ? 'none' : '';
   $('#i-next').style.display = st.itemDone ? '' : 'none';
-  $('#i-next').textContent = (+slot + 1 >= settings.total + 1) ? '🏆 시상식' : '다음 문제 ▶';
+  $('#i-next').textContent = (+slot >= settings.total) ? '🏆 시상식' : '다음 문제 ▶';
+  $('#i-help').textContent = '태블릿에서 아이템을 확인해요! 🌪️ 돌풍·🎲 주사위는 지금, ⚡ 부스터·🤝 응원 깃발은 다음 문제를 위해 쓸 수 있어요.';
   paintItemLog({});
   if (unsubIntent) unsubIntent();
   unsubIntent = db.on(R() + '/intents/' + slot, v => {
     const x = v || {};
-    const n = Object.keys(x).filter(u => x[u].booster || x[u].gust).length;
+    const n = Object.keys(x).filter(u => NOW_ITEMS.some(k => x[u][k])).length;
     $('#i-used').textContent = `사용 ${n}명`;
     if (!st.itemDone) paintItemLog(x);
   });
@@ -578,9 +767,10 @@ function renderItem() {
 function paintItemLog(intents) {
   const list = active().map(u => ({ u, ...players[u], s: scores[u] })).sort((a, b) => a.s.rank - b.s.rank);
   $('#i-log').innerHTML = list.map(p => {
-    const used = intents[p.u] ? Object.keys(intents[p.u]).filter(k => k === 'booster' || k === 'gust').map(k => ITEMS[k].icon).join('') : '';
+    const used = intents[p.u] ? Object.keys(intents[p.u]).filter(k => NOW_ITEMS.includes(k)).map(k => ITEMS[k].icon).join('') : '';
     const gift = p.s.gift && p.s.gift.slot === st.itemSlot;
-    return `<div class="pcard"><span class="em">${CHARS[p.char]}</span><span class="nm">${p.num} ${esc(p.name)}<small>${p.s.rank}등 · ${p.s.score}점</small></span>` +
+    const t = isTeam() && TEAMS[teams[p.u]] ? TEAMS[teams[p.u]].icon : '';
+    return `<div class="pcard"><span class="em">${CHARS[p.char]}</span><span class="nm">${t}${p.num} ${esc(p.name)}<small>${p.s.rank}등 · ${p.s.score}점</small></span>` +
       `<span style="font-size:36px">${gift ? '🎁' : ''}${used ? ' ✔' + used : ''}</span></div>`;
   }).join('');
 }
@@ -589,25 +779,36 @@ $('#i-done').addEventListener('click', async () => {
   try {
     const slot = st.itemSlot;
     const intents = (await db.get(R() + '/intents/' + slot)) || {};
-    const users = Object.keys(intents).filter(u => intents[u].gust && scores[u]).sort((a, b) => intents[a].gust.at - intents[b].gust.at);
+    const byTime = (k) => Object.keys(intents).filter(u => intents[u][k] && scores[u]).sort((a, b) => intents[a][k].at - intents[b][k].at);
     const ranking = rankedUids();
     const rng = makeRng(hashSeed(st.seed + ':gust:' + slot));
-    const events = applyGusts(scores, ranking, users, rng, enabledMap());
+    const events = applyGusts(scores, ranking, byTime('gust'), rng, enabledMap(), teamOfMap());
+    // 🎲 주사위 상자
+    const drng = makeRng(hashSeed(st.seed + ':dice:' + slot));
+    for (const u of byTime('dice')) {
+      const items = toArr(scores[u].items);
+      if (!items.includes('dice')) continue;
+      items.splice(items.indexOf('dice'), 1);
+      scores[u].items = items;
+      const d = rollDice(drng);
+      scores[u].score += d.amount;
+      events.push({ type: 'dice', from: u, n: d.n, amount: d.amount });
+    }
     applyRanks();
     const upd = { scores, 'state/itemDone': true };
-    events.forEach((ev, k) => {
-      upd['events/' + slot + '_' + k] = { ...ev, to: ev.to || '', item: ev.item || '', fromNum: players[ev.from] ? players[ev.from].num : 0, toNum: ev.to && players[ev.to] ? players[ev.to].num : 0, at: db.TS };
-    });
+    events.forEach((ev, k) => { upd['events/' + slot + '_' + k] = evData(ev); });
     await db.update(R(), upd);
     st.itemDone = true;
-    if (events.some(e => e.type === 'gust')) sfx.gust();
+    if (events.some(e => e.type === 'gust')) sfx.gust(); else if (events.length) sfx.item();
     $('#i-done').style.display = 'none'; $('#i-next').style.display = '';
-    $('#i-help').textContent = events.length ? '🌪️ 돌풍 결과' : '이번에는 돌풍이 없었어요.';
-    const nm = u => players[u] ? `${players[u].num}번 ${esc(players[u].name)}` : '?';
-    const cs = 'style="font-size:44px;padding:14px 26px"';
-    $('#i-log').innerHTML = `<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:16px">` + (events.map(ev => ev.type === 'swap'
-      ? `<div class="pcard" ${cs}>🔄 ${nm(ev.from)}: 1등이라 돌풍 대신 ${ev.item ? ITEMS[ev.item].icon + ' ' + ITEMS[ev.item].name : '없음'}</div>`
-      : `<div class="pcard" ${cs}>🌪️ ${nm(ev.from)} → ${nm(ev.to)} : ${ev.blocked ? '☂️ 막았다!' : `${ev.amount}점 가져옴`}</div>`).join('') || `<div class="pcard" ${cs}>🍃 조용한 바람</div>`) + `</div>`;
+    const waiting = Object.keys(intents).filter(u => intents[u].cheer || intents[u].booster).length;
+    $('#i-help').textContent = (events.length ? '🎁 아이템 결과' : '지금 결과가 나오는 아이템은 없어요.') +
+      (waiting ? ` (⚡ 부스터·🤝 응원 깃발 ${waiting}명은 다음 문제에서 결과가 나와요)` : '');
+    const cs = 'style="font-size:40px;padding:12px 26px"';
+    $('#i-log').innerHTML = `<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:14px">` + (events.map(ev =>
+      ev.type === 'swap' ? `<div class="pcard" ${cs}>🔄 ${nm(ev.from)}: 앞에 돌풍을 보낼 친구가 없어서 ${ev.item ? ITEMS[ev.item].icon + ' ' + ITEMS[ev.item].name : '없음'}(으)로 바꿨어요</div>`
+      : ev.type === 'dice' ? `<div class="pcard" ${cs}>🎲 ${nm(ev.from)}: ${ev.n}! ${ev.n % 2 === 0 ? '짝수' : '홀수'} → +${ev.amount}점</div>`
+      : `<div class="pcard" ${cs}>🌪️ ${nm(ev.from)} → ${nm(ev.to)} : ${ev.blocked ? '☂️ 막았다!' : `${ev.amount}점 가져옴`}</div>`).join('') || (waiting ? '' : `<div class="pcard" ${cs}>🍃 조용한 바람</div>`)) + `</div>`;
   } finally { $('#i-done').disabled = false; }
 });
 $('#i-next').addEventListener('click', () => {
@@ -620,12 +821,13 @@ async function finishGame() {
   clearInterval(tickTimer);
   applyRanks();
   const aw = computeAwards();
-  await db.update(R(), { scores, 'state/status': 'end', 'state/awards': aw });
-  st.awards = aw;
+  const ts = isTeam() ? standings().map(x => ({ team: x.team, avg: Math.round(x.avg * 10) / 10, rank: x.rank, size: x.size })) : null;
+  await db.update(R(), { scores, 'state/status': 'end', 'state/awards': aw, 'state/teamResult': ts, 'state/review': null });
+  Object.assign(st, { awards: aw, teamResult: ts, review: null });
   renderEnd();
 }
 function statList() {
-  return active().map(u => ({ uid: u, num: players[u].num, name: players[u].name, char: players[u].char, ...scores[u] })).sort((a, b) => a.rank - b.rank);
+  return active().map(u => ({ uid: u, num: players[u].num, name: players[u].name, char: players[u].char, team: teams[u], ...scores[u] })).sort((a, b) => a.rank - b.rank);
 }
 function computeAwards() {
   const a = awards(statList());
@@ -636,12 +838,26 @@ function computeAwards() {
 function renderEnd() {
   phase = 'end'; show('s-end'); sfx.fanfare();
   const list = statList();
-  const pod = [list[1], list[0], list[2]];
-  $('#e-podium').innerHTML = pod.map((p, k) => {
-    if (!p) return '<div class="pod"></div>';
-    const place = [2, 1, 3][k];
-    return `<div class="pod p${place}"><span class="em">${CHARS[p.char]}</span><span class="nm">${p.num} ${esc(p.name)}</span><span class="sc">${p.score}점</span><div class="blk">${place}</div></div>`;
-  }).join('');
+  $('#e-csv3').style.display = isTeam() ? '' : 'none';
+  if (isTeam()) {
+    $('#e-title').textContent = '🏆 모둠 시상식';
+    const ts = standings();
+    const pod = [ts[1], ts[0], ts[2]];
+    $('#e-podium').innerHTML = pod.map((x, k) => {
+      if (!x) return '<div class="pod"></div>';
+      const place = [2, 1, 3][k], T = TEAMS[x.team];
+      const names = x.members.map(u => players[u] ? esc(players[u].name) : '').join(' · ');
+      return `<div class="pod p${place}"><span class="em">${T.icon}</span><span class="nm">${T.name}</span><span class="sc">평균 ${Math.round(x.avg)}점 · ${x.size}명</span><span class="sub" style="font-size:22px;text-align:center;min-height:56px">${names}</span><div class="blk">${place}</div></div>`;
+    }).join('');
+  } else {
+    $('#e-title').textContent = '🏆 시상식';
+    const pod = [list[1], list[0], list[2]];
+    $('#e-podium').innerHTML = pod.map((p, k) => {
+      if (!p) return '<div class="pod"></div>';
+      const place = [2, 1, 3][k];
+      return `<div class="pod p${place}"><span class="em">${CHARS[p.char]}</span><span class="nm">${p.num} ${esc(p.name)}</span><span class="sc">${p.score}점</span><div class="blk">${place}</div></div>`;
+    }).join('');
+  }
   const aw = st.awards || computeAwards();
   const who = (x) => { const p = x && list.find(s => s.uid === x.uid); return p ? `<div class="em">${CHARS[p.char]}</div>${p.num} ${esc(p.name)}` : '<div class="em">🙂</div>이번엔 없어요'; };
   $('#e-awards').innerHTML =
@@ -650,24 +866,64 @@ function renderEnd() {
     `<div class="award"><div class="t">🚀 역전의 주인공</div>${who(aw.comeback)}${aw.comeback ? `<div class="sub">${aw.comeback.value}계단 올라왔어요</div>` : ''}</div>`;
 }
 $('#e-csv1').addEventListener('click', () => {
-  const rows = [['순위', '번호', '이름', '점수', '정답 수', '평균 응답 시간(초)', '최대 연속 정답']];
-  statList().sort((a, b) => a.num - b.num).forEach(p => rows.push([p.rank, p.num, p.name, p.score, p.correct || 0, p.answered ? (avgTime(p) / 1000).toFixed(1) : '', p.maxStreak || 0]));
+  const rows = [['순위', '번호', '이름', ...(isTeam() ? ['모둠'] : []), '점수', '정답 수', '평균 응답 시간(초)', '최대 연속 정답', '답 바꾼 횟수', '맞았다가 바꿔서 틀린 수', '문항별(O 정답, X 오답, - 미응답)']];
+  statList().sort((a, b) => a.num - b.num).forEach(p => rows.push([p.rank, p.num, p.name, ...(isTeam() ? [TEAMS[p.team] ? TEAMS[p.team].name : ''] : []), p.score, p.correct || 0,
+    p.answered ? (avgTime(p) / 1000).toFixed(1) : '', p.maxStreak || 0, p.changes || 0, p.flip || 0, (p.res || '').padEnd(settings.total, '-')]));
   downloadCSV(`가능성레이스_학생별_${code}.csv`, rows);
 });
 $('#e-csv2').addEventListener('click', () => {
-  const rows = [['문항', '차시', '유형', '문제', '정답', '정답 수', '답한 학생', '참가 학생', '정답률(%)']];
+  const rows = [['문항', '차시', '유형', '문제', '정답', '정답 수', '답한 학생', '참가 학생', '정답률(%)', '답 바꾼 학생', '맞았다가 바꿔서 틀림']];
   questions.forEach((q, i) => {
     const s = qstats[i] || {};
-    rows.push([i + 1, q.lesson, `${q.type} ${TYPE_NAMES[q.type]}`, q.prompt, answerText(q).replace('1/2', '1/2'), s.skipped ? '건너뜀' : (s.correct || 0), s.answered || 0, s.total || 0, s.total ? Math.round((s.correct || 0) / s.total * 100) : '']);
+    rows.push([i + 1, q.lesson, `${q.type} ${TYPE_NAMES[q.type]}`, q.prompt, answerText(q), s.skipped ? '건너뜀' : (s.correct || 0), s.answered || 0, s.total || 0,
+      s.total ? Math.round((s.correct || 0) / s.total * 100) : '', s.changed || 0, s.flip || 0]);
   });
   downloadCSV(`가능성레이스_문항별_${code}.csv`, rows);
 });
+$('#e-csv3').addEventListener('click', () => {
+  const rows = [['순위', '모둠', '인원', '평균 점수', '모둠원(번호 이름 점수)']];
+  standings().forEach(x => rows.push([x.rank, TEAMS[x.team].name, x.size, x.avg.toFixed(1),
+    x.members.map(u => `${players[u].num} ${players[u].name} ${scores[u].score}`).join(' / ')]));
+  downloadCSV(`가능성레이스_모둠별_${code}.csv`, rows);
+});
 $('#e-new').addEventListener('click', resetGame);
+
+// ---------------- 오답 복습 ----------------
+let reviewList = [], reviewIdx = 0, reviewShown = false;
+$('#e-review').addEventListener('click', () => {
+  reviewList = Object.keys(qstats).map(Number)
+    .filter(i => qstats[i] && !qstats[i].skipped && qstats[i].total > 0 && qstats[i].correct < qstats[i].total && questions[i])
+    .sort((a, b) => qstats[a].correct / qstats[a].total - qstats[b].correct / qstats[b].total || a - b)
+    .slice(0, 3);
+  if (!reviewList.length) { toast('모두 다 맞힌 문제뿐이에요! 👏'); return; }
+  reviewIdx = 0; reviewShown = false;
+  paintReview();
+});
+async function paintReview() {
+  phase = 'review'; show('s-review');
+  const i = reviewList[reviewIdx], q = questions[i], s = qstats[i];
+  $('#v-no').textContent = `${reviewIdx + 1} / ${reviewList.length} · ${i + 1}번 문제`;
+  $('#v-rate').textContent = `정답률 ${Math.round(s.correct / s.total * 100)}%`;
+  $('#v-prompt').innerHTML = fmt(q.prompt);
+  $('#v-body').innerHTML = questionBodyHTML(q, { interactive: false });
+  $('#v-exp').innerHTML = '';
+  if (reviewShown) {
+    markChoices($('#v-body'), q, null);
+    $('#v-exp').innerHTML = `<div class="answer-big" style="font-size:40px">정답: <span class="a">${fmt(answerText(q))}</span></div>` + explainHTML(q);
+  }
+  $('#v-show').style.display = reviewShown ? 'none' : '';
+  $('#v-next').style.display = reviewIdx + 1 < reviewList.length ? '' : 'none';
+  await db.update(R(), { 'state/review': { q: i, shown: reviewShown } });
+}
+$('#v-show').addEventListener('click', () => { reviewShown = true; sfx.correct(); paintReview(); });
+$('#v-next').addEventListener('click', () => { reviewIdx++; reviewShown = false; sfx.tap(); paintReview(); });
+$('#v-back').addEventListener('click', async () => { await db.update(R(), { 'state/review': null }); renderEnd(); });
 
 // ---------------- 게임 초기화 ----------------
 async function resetGame() {
-  if (!confirm('게임을 처음으로 되돌릴까요? 점수가 모두 0이 되고, 학생들은 대기실로 돌아가요.')) return;
+  if (!confirm('게임을 처음으로 되돌릴까요? 점수가 모두 0이 되고, 학생들은 대기실로 돌아가요. (모둠은 그대로예요)')) return;
   clearInterval(tickTimer);
+  if (allTimer) { clearTimeout(allTimer); allTimer = null; }
   if (unsubAns) { unsubAns(); unsubAns = null; }
   if (unsubIntent) { unsubIntent(); unsubIntent = null; }
   for (const u in scores) scores[u] = blankScore();
@@ -682,7 +938,7 @@ async function resetGame() {
   renderLobby();
 }
 
-window.addEventListener('resize', () => { if (phase === 'race') drawTrack(snapshot()); });
+window.addEventListener('resize', () => { if (phase === 'race') paintRaceView(); });
 </script>
 </body>
 </html>

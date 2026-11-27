@@ -209,6 +209,24 @@ p { margin: 6px 0; }
 .host .timer { height: 36px; }
 
 .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; width: 1500px; margin-top: 10px; }
+.setup-grid.three { grid-template-columns: 1.05fr .9fr 1.15fr; width: 1840px; gap: 22px; }
+.setup-grid.three .card { padding: 16px 22px; }
+.setup-grid.three .opt { min-height: 64px; font-size: 26px; padding: 6px 16px; min-width: 0; }
+.opt-title.gap { margin-top: 16px; }
+.opt-title { font-size: 28px; margin-bottom: 8px; }
+.small-note { font-size: 21px; margin-top: 10px; line-height: 1.35; }
+.opts { gap: 10px; }
+
+/* 모둠 */
+.teambar { display: flex; align-items: center; gap: 16px; margin-top: 12px; font-size: 26px; flex: 0 0 auto; }
+.tsum { display: inline-block; background: #fff; border: 4px solid #dee2e6; border-radius: 999px; padding: 4px 16px; margin-right: 10px; }
+.pcard .tbadge { position: absolute; top: -14px; left: 12px; border: none; color: #fff; border-radius: 999px; font-size: 20px; padding: 2px 12px; cursor: pointer; font-family: inherit; box-shadow: 0 2px 0 rgba(0,0,0,.15); }
+.pgrid { padding-top: 14px; }
+.teamtag { font-size: 30px; background: #fff; border: 4px solid #dee2e6; border-radius: 999px; padding: 4px 22px; margin: 6px 0; }
+.evlist { font-size: 26px; display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.reviewbar { font-size: 26px; background: #e7f5ff; border: 3px solid #74c0fc; border-radius: 18px; padding: 8px 16px; margin-top: 10px; display: flex; align-items: center; gap: 12px; }
+.choice.prev { border-style: dashed; border-color: #74c0fc; }
+.choice.prev::after { content: '처음 고른 답'; position: absolute; right: 10px; top: 4px; font-size: 16px; color: #1c7ed6; }
 .opt-title { font-size: 32px; margin-bottom: 12px; }
 .opts { display: flex; flex-wrap: wrap; gap: 14px; }
 .opt { min-height: 72px; min-width: 120px; padding: 8px 22px; font-size: 30px; border-radius: 18px; border: 4px solid var(--line); background: #fff; cursor: pointer; }
@@ -269,7 +287,7 @@ p { margin: 6px 0; }
 .itemlog .pcard { font-size: 26px; }
 
 /* 시상식 */
-.podium { display: flex; align-items: flex-end; justify-content: center; gap: 30px; height: 520px; }
+.podium { display: flex; align-items: flex-end; justify-content: center; gap: 30px; height: 540px; margin-top: 50px; }
 .pod { width: 340px; display: flex; flex-direction: column; align-items: center; }
 .pod .em { font-size: 110px; animation: bounce 1.4s infinite; }
 .pod .nm { font-size: 40px; }

@@ -20,7 +20,8 @@
 <div id="out"></div>
 <script type="module">
 import { generate, isCorrect, BANK, COLORS, LEVELS } from './js/questions.js';
-import { calcGain, rankPlayers, applyGusts, grantItems, consumeItems, pickItem, maxScore, magnifierOK, ITEM_KEYS } from './js/game.js';
+import { calcGain, rankPlayers, applyGusts, grantItems, consumeItems, pickItem, maxScore, magnifierOK, ITEM_KEYS,
+  applyShield, resolveCheers, rollDice, assignTeams, smallestTeam, teamStandings } from './js/game.js';
 import { makeRng } from './js/questions.js';
 import { qrMatrix } from './js/qr.js';
 
@@ -190,7 +191,7 @@ eq('⚡ 두 배 + 정답(5초): 138×2=276', calcGain({ correct: true, elapsedMs
   const g = calcGain({ correct: false, elapsedMs: 5000, limitMs: 20000, booster: u.booster });
   eq('⚡ 두 배 + 오답: 0점, 부스터만 사라짐', [g.gained, u.items], [0, ['umbrella']]);
 }
-eq('없는 아이템 사용 의사는 무시', consumeItems(['umbrella'], { booster: { at: 1 } }), { items: ['umbrella'], booster: false, timestop: false, magnifier: false });
+eq('없는 아이템 사용 의사는 무시', consumeItems(['umbrella'], { booster: { at: 1 } }), { items: ['umbrella'], booster: false, timestop: false, magnifier: false, confidence: false, cheer: false });
 eq('⏱️ 시간 정지 + 정답(19초): 속도 50 고정', calcGain({ correct: true, elapsedMs: 19000, limitMs: 20000, timestop: true }).gained, 150);
 eq('⏱️ 시간 정지 + 오답: 0점', calcGain({ correct: false, elapsedMs: 1000, limitMs: 20000, timestop: true }).gained, 0);
 eq('🏁 마지막 문제 2배 + ⚡ = 4배', calcGain({ correct: true, elapsedMs: 0, limitMs: 20000, booster: true, spurt: true }).gained, 600);
@@ -235,6 +236,64 @@ eq('결승선 점수(10문제) = 150×10 + 20×8 + 마지막 2배', maxScore(10)
   const qs = generate([5, 6, 7], 300, 77);
   const bad = qs.filter(q => magnifierOK(q) !== (q.kind !== 'order' && [3, 5].includes(q.choices.length)));
   row(tb3, '🔍 돋보기는 5단계·3지선다에서만', bad.length === 0 && qs.some(q => !magnifierOK(q)), `가능 ${qs.filter(magnifierOK).length} / 불가 ${qs.filter(q => !magnifierOK(q)).length}`);
+}
+
+// ---------- 3-2. 새 아이템 · 모둠 ----------
+const tb5 = section('3-2. 새 아이템(🛡️🎯🤝🎲) · 모둠 대항전 · 답 바꾸기');
+const eq5 = (name, got, exp) => row(tb5, name, JSON.stringify(got) === JSON.stringify(exp), `결과 ${JSON.stringify(got)} / 기대 ${JSON.stringify(exp)}`);
+const ALL = Object.fromEntries(ITEM_KEYS.map(k => [k, true]));
+eq5('🎯 확신 카드 + 정답(20초 끝): 100 + 50', calcGain({ correct: true, elapsedMs: 20000, limitMs: 20000, confidence: true }).gained, 150);
+eq5('🎯 확신 카드 + 오답: 0점(감점 없음)', calcGain({ correct: false, elapsedMs: 1000, limitMs: 20000, confidence: true }).gained, 0);
+eq5('🎯 확신 카드는 2배에 곱하지 않고 +50만: ⚡+정답(20초) = 200+50', calcGain({ correct: true, elapsedMs: 20000, limitMs: 20000, booster: true, confidence: true }).gained, 250);
+eq5('🛡️ 보호막: 3연속 중 틀림 → 연속 3 유지, 보호막 사용', applyShield(3, false, ['shield', 'booster']), { streak: 3, items: ['booster'], used: true });
+eq5('🛡️ 보호막: 연속이 없을 때 틀림 → 안 씀', applyShield(0, false, ['shield']), { streak: 0, items: ['shield'], used: false });
+eq5('🛡️ 보호막: 맞히면 안 씀', applyShield(2, true, ['shield']), { streak: 3, items: ['shield'], used: false });
+eq5('🛡️ 보호막 없이 틀리면 연속 0', applyShield(4, false, []).streak, 0);
+eq5('🤝 응원 깃발: 바로 뒤 친구가 맞힘 → 성공 +30',
+  resolveCheers(['a', 'b', 'c'], ['a'], { a: false, b: true, c: false }).map(e => [e.to, e.success, e.amount]), [['b', true, 30]]);
+eq5('🤝 응원 깃발: 바로 뒤 친구가 틀림 → 0',
+  resolveCheers(['a', 'b', 'c'], ['b'], { a: true, b: true, c: false }).map(e => [e.to, e.success, e.amount]), [['c', false, 0]]);
+eq5('🤝 응원 깃발: 꼴등은 뒤 친구가 없음 → 돌려줌', resolveCheers(['a', 'b'], ['b'], {})[0].refund, true);
+{
+  const r = makeRng(2024); let even = 0, bad = 0; const N = 6000;
+  for (let i = 0; i < N; i++) { const d = rollDice(r); if (d.n % 2 === 0) { even++; if (d.amount !== 40) bad++; } else if (d.amount !== 10) bad++; if (d.n < 1 || d.n > 6) bad++; }
+  row(tb5, '🎲 주사위: 짝수 +40 / 홀수 +10, 눈은 1~6', bad === 0, `${N}번 굴림, 오류 ${bad}`);
+  row(tb5, '🎲 짝수가 나올 가능성은 반반(1/2)에 가까움', Math.abs(even / N - 0.5) < 0.03, `짝수 ${(even / N * 100).toFixed(1)}%`);
+}
+{
+  let cheerLast = 0;
+  for (let s = 0; s < 1000; s++) { const g = grantItems({ a: { items: [] }, b: { items: [] }, c: { items: [] } }, ['a', 'b', 'c'], makeRng(s), ALL); if (g.c === 'cheer') cheerLast++; }
+  row(tb5, '아이템 상자: 꼴등은 🤝 응원 깃발을 받지 않음', cheerLast === 0, `${cheerLast}회`);
+  eq5('사용 의사 → 🎯·🤝도 가진 것만 소모', consumeItems(['confidence', 'cheer'], { confidence: { at: 1 }, cheer: { at: 1 }, booster: { at: 1 } }),
+    { items: [], booster: false, timestop: false, magnifier: false, confidence: true, cheer: true });
+}
+{
+  const p = { a: { score: 400, items: [] }, b: { score: 300, items: [] }, c: { score: 200, items: ['gust'] } };
+  const ev = applyGusts(p, ['a', 'b', 'c'], ['c'], makeRng(1), ALL, { a: 0, b: 1, c: 1 });
+  eq5('👥 모둠전 돌풍: 바로 앞이 같은 모둠이면 건너뛰고 다른 모둠 친구에게', [ev[0].to, p.a.score, p.b.score, p.c.score], ['a', 370, 300, 230]);
+  const p2 = { a: { score: 400, items: [] }, c: { score: 200, items: ['gust'] } };
+  const ev2 = applyGusts(p2, ['a', 'c'], ['c'], makeRng(1), ALL, { a: 1, c: 1 });
+  eq5('👥 모둠전 돌풍: 앞에 다른 모둠이 없으면 다른 아이템으로 교체', [ev2[0].type, p2.a.score, p2.c.items.includes('gust')], ['swap', 400, false]);
+}
+{
+  let worst = 0;
+  for (let s = 0; s < 1000; s++) {
+    const n = 5 + (s % 26), cnt = 2 + (s % 7);
+    const uids = Array.from({ length: n }, (_, i) => 'u' + i);
+    const m = assignTeams(uids, cnt, makeRng(s));
+    const sizes = new Array(cnt).fill(0); Object.values(m).forEach(t => sizes[t]++);
+    worst = Math.max(worst, Math.max(...sizes) - Math.min(...sizes));
+  }
+  row(tb5, '🎲 랜덤 모둠: 1000번 뽑아도 모둠 인원 차이는 최대 1명', worst <= 1, `최대 차이 ${worst}명`);
+  eq5('늦게 온 학생은 인원이 가장 적은 모둠으로', smallestTeam({ a: 0, b: 0, c: 1, d: 2, e: 2 }, 3), 1);
+  const ts = teamStandings([
+    { uid: 'a', team: 0, score: 300, timeSum: 10000, answered: 5 }, { uid: 'b', team: 0, score: 100, timeSum: 10000, answered: 5 },
+    { uid: 'c', team: 1, score: 250, timeSum: 10000, answered: 5 },
+    { uid: 'd', team: 2, score: 200, timeSum: 5000, answered: 5 }
+  ], 4);
+  eq5('모둠 점수 = 평균 (합이 아님): 1모둠 (300+100)/2=200, 2모둠 250 → 2모둠이 1등', ts.map(x => [x.team, x.avg, x.rank]), [[1, 250, 1], [2, 200, 2], [0, 200, 3]]);
+  row(tb5, '평균이 같으면 모둠 평균 응답 시간이 빠른 모둠이 위', ts[1].team === 2, '3모둠(빠름) > 1모둠');
+  row(tb5, '사람이 없는 모둠은 순위에서 빠짐', ts.length === 3, `${ts.length}모둠`);
 }
 
 // ---------- 4. QR 코드: 만든 그림을 거꾸로 읽어서 원래 글자가 나오는지 ----------

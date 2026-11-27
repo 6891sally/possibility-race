@@ -19,10 +19,12 @@
         "answers": {
           "$q": {
             "$uid": {
-              ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('rooms/' + $code + '/state/status').val() === 'question' && root.child('rooms/' + $code + '/state/qKey').val() === $q && root.child('rooms/' + $code + '/players/' + $uid).exists()",
+              ".write": "auth != null && auth.uid === $uid && newData.exists() && (!data.exists() || root.child('rooms/' + $code + '/state/settings/allowChange').val() === true) && root.child('rooms/' + $code + '/state/status').val() === 'question' && root.child('rooms/' + $code + '/state/qKey').val() === $q && root.child('rooms/' + $code + '/players/' + $uid).exists()",
               ".validate": "newData.hasChildren(['choice', 'answeredAt']) && newData.child('answeredAt').val() === now",
               "choice": { ".validate": "newData.isString() && newData.val().length <= 12" },
               "answeredAt": { ".validate": "newData.isNumber()" },
+              "first": { ".validate": "newData.isString() && newData.val().length <= 12" },
+              "changes": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 99" },
               "$other": { ".validate": false }
             }
           }
@@ -32,7 +34,7 @@
             "$uid": {
               "$item": {
                 ".write": "auth != null && auth.uid === $uid && !data.exists() && root.child('rooms/' + $code + '/players/' + $uid).exists()",
-                ".validate": "($item === 'booster' || $item === 'gust' || $item === 'magnifier' || $item === 'timestop') && newData.child('at').val() === now"
+                ".validate": "($item === 'booster' || $item === 'gust' || $item === 'magnifier' || $item === 'timestop' || $item === 'confidence' || $item === 'cheer' || $item === 'dice') && newData.child('at').val() === now"
               }
             }
           }

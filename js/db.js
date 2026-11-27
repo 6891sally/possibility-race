@@ -9,7 +9,8 @@
 import { firebaseConfig } from './firebase-config.js';
 
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2/';
-export const isDemo = !firebaseConfig.apiKey;
+// 설정값이 비어 있거나 주소에 ?demo=1 이 있으면 체험 모드 (수업 전 연습·점검용)
+export const isDemo = !firebaseConfig.apiKey || new URLSearchParams(location.search).has('demo');
 
 let impl = null;
 

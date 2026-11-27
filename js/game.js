@@ -8,30 +8,112 @@ export const RULE = {
   GUST: 30,         // 돌풍으로 가져오는 점수
   MAX_ITEMS: 2,     // 최대 보유 개수
   GRACE_MS: 1500,   // 시간 종료 뒤 통신 지연 허용
-  ITEM_EVERY: 3     // 3문제마다 아이템 상자
+  ITEM_EVERY: 3,    // 3문제마다 아이템 상자
+  CONFIDENCE: 50,   // 🎯 확신 카드: 맞히면 +50
+  CHEER: 30,        // 🤝 응원 깃발: 둘 다 +30
+  DICE_EVEN: 40,    // 🎲 짝수
+  DICE_ODD: 10      // 🎲 홀수
 };
 
+// when: 언제 쓰는지
+//   between  = 문제가 뜨기 전 (정답 공개·달리기·아이템 타임)
+//   itemtime = 아이템 타임에만
+//   question = 문제 풀 때
+//   passive  = 갖고만 있으면 자동
 export const ITEMS = {
-  booster:   { icon: '⚡', name: '두 배 부스터', desc: '다음 문제 점수 2배! (문제가 뜨기 전에 사용)' },
-  gust:      { icon: '🌪️', name: '돌풍', desc: '바로 앞 순위 친구의 점수 30점을 가져와요' },
-  umbrella:  { icon: '☂️', name: '우산', desc: '돌풍을 한 번 자동으로 막아요' },
-  magnifier: { icon: '🔍', name: '돋보기', desc: '틀린 보기 1개를 지워요' },
-  timestop:  { icon: '⏱️', name: '시간 정지', desc: '이번 문제 속도 보너스 최대!' }
+  booster:    { icon: '⚡', name: '두 배 부스터', when: 'between', desc: '다음 문제 점수 2배! (틀리면 아이템만 사라져요)' },
+  gust:       { icon: '🌪️', name: '돌풍', when: 'itemtime', desc: '바로 앞 순위 친구의 점수 30점을 가져와요' },
+  umbrella:   { icon: '☂️', name: '우산', when: 'passive', desc: '돌풍을 한 번 자동으로 막아요' },
+  magnifier:  { icon: '🔍', name: '돋보기', when: 'question', desc: '틀린 보기 1개를 지워요' },
+  timestop:   { icon: '⏱️', name: '시간 정지', when: 'question', desc: '이번 문제 속도 보너스 최대!' },
+  shield:     { icon: '🛡️', name: '연속 보호막', when: 'passive', desc: '한 번 틀려도 🔥 연속 정답이 안 끊겨요' },
+  confidence: { icon: '🎯', name: '확신 카드', when: 'question', desc: '이번 문제를 맞히면 +50점! (틀려도 감점 없음)' },
+  cheer:      { icon: '🤝', name: '응원 깃발', when: 'between', desc: '바로 뒤 친구가 다음 문제를 맞히면 둘 다 +30점' },
+  dice:       { icon: '🎲', name: '주사위 상자', when: 'itemtime', desc: '굴려서 짝수면 +40점, 홀수면 +10점' }
 };
 export const ITEM_KEYS = Object.keys(ITEMS);
 
 // 정답 한 문제 점수 계산
-// opts: { correct, elapsedMs, limitMs, streakBefore, booster, timestop, spurt }
+// opts: { correct, elapsedMs, limitMs, streakBefore, booster, timestop, spurt, confidence }
 export function calcGain(o) {
   const streakBefore = o.streakBefore || 0;
-  if (!o.correct) return { gained: 0, base: 0, speed: 0, streakBonus: 0, mult: 1, streak: 0 };
+  if (!o.correct) return { gained: 0, base: 0, speed: 0, streakBonus: 0, mult: 1, streak: 0, conf: 0 };
   const limit = Math.max(1, o.limitMs);
   const ratio = Math.min(1, Math.max(0, (limit - Math.max(0, o.elapsedMs)) / limit));
   const speed = o.timestop ? RULE.SPEED : Math.round(RULE.SPEED * ratio);
   const streak = streakBefore + 1;
   const streakBonus = streak >= RULE.STREAK_FROM ? RULE.STREAK_BONUS : 0;
   const mult = (o.booster ? 2 : 1) * (o.spurt ? 2 : 1);
-  return { gained: (RULE.BASE + speed + streakBonus) * mult, base: RULE.BASE, speed, streakBonus, mult, streak };
+  const conf = o.confidence ? RULE.CONFIDENCE : 0;
+  return { gained: (RULE.BASE + speed + streakBonus) * mult + conf, base: RULE.BASE, speed, streakBonus, mult, streak, conf };
+}
+
+// 🛡️ 연속 보호막: 틀렸는데 이어 오던 연속 정답이 있으면 보호막을 쓰고 연속을 지킴
+// → { streak, items, used }
+export function applyShield(streakBefore, correct, itemsIn) {
+  const items = toArr(itemsIn).slice();
+  if (correct || !(streakBefore > 0) || !items.includes('shield')) return { streak: correct ? streakBefore + 1 : 0, items, used: false };
+  items.splice(items.indexOf('shield'), 1);
+  return { streak: streakBefore, items, used: true };
+}
+
+// 🤝 응원 깃발: order = 문제 전 순위순 uid, users = 응원 깃발을 쓴 uid,
+// correct = {uid: 맞았는지} → events (점수는 각 event의 amount를 둘 다에게 더함)
+export function resolveCheers(order, users, correct) {
+  const events = [];
+  for (const uid of users) {
+    const pos = order.indexOf(uid);
+    const to = pos >= 0 ? order[pos + 1] : undefined;
+    if (!to) { events.push({ type: 'cheer', from: uid, to: '', success: false, amount: 0, refund: true }); continue; }
+    const ok = !!correct[to];
+    events.push({ type: 'cheer', from: uid, to, success: ok, amount: ok ? RULE.CHEER : 0 });
+  }
+  return events;
+}
+
+// 🎲 주사위 상자
+export function rollDice(rng) {
+  const n = 1 + Math.floor(rng() * 6);
+  return { n, amount: n % 2 === 0 ? RULE.DICE_EVEN : RULE.DICE_ODD };
+}
+
+// ---------- 모둠 ----------
+export const TEAMS = [
+  { name: '1모둠', icon: '🔴', color: '#ff6b6b' }, { name: '2모둠', icon: '🔵', color: '#4dabf7' },
+  { name: '3모둠', icon: '🟢', color: '#38d9a9' }, { name: '4모둠', icon: '🟡', color: '#fcc419' },
+  { name: '5모둠', icon: '🟣', color: '#9775fa' }, { name: '6모둠', icon: '🟠', color: '#ff922b' },
+  { name: '7모둠', icon: '🟤', color: '#a0785a' }, { name: '8모둠', icon: '⚫', color: '#495057' }
+];
+// 랜덤 모둠: 섞은 뒤 차례로 나눠 줌 → 인원 차이 최대 1명
+export function assignTeams(uids, count, rng) {
+  const order = uids.slice();
+  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  const start = Math.floor(rng() * count);
+  const map = {};
+  order.forEach((u, i) => { map[u] = (start + i) % count; });
+  return map;
+}
+// 늦게 들어온 학생: 인원이 가장 적은 모둠으로
+export function smallestTeam(map, count) {
+  const n = new Array(count).fill(0);
+  Object.values(map).forEach(t => { if (t >= 0 && t < count) n[t]++; });
+  return n.indexOf(Math.min(...n));
+}
+// 모둠 순위: 모둠원 점수의 평균이 높은 순 → 같으면 평균 응답 시간 빠른 순
+// list: [{uid, team, score, timeSum, answered}]
+export function teamStandings(list, count) {
+  const res = [];
+  for (let t = 0; t < count; t++) {
+    const mem = list.filter(p => p.team === t);
+    if (!mem.length) continue;
+    const avg = mem.reduce((s, p) => s + (p.score || 0), 0) / mem.length;
+    const ans = mem.reduce((s, p) => s + (p.answered || 0), 0);
+    const time = ans ? mem.reduce((s, p) => s + (p.timeSum || 0), 0) / ans : Infinity;
+    res.push({ team: t, members: mem.map(p => p.uid), size: mem.length, avg, time });
+  }
+  res.sort((a, b) => b.avg - a.avg || a.time - b.time || a.team - b.team);
+  res.forEach((r, i) => { r.rank = i + 1; });
+  return res;
 }
 
 // 결승선: 아이템 없이 전원 만점일 때 점수
@@ -67,12 +149,17 @@ export function toArr(v) {
 // rankIdx: 0 = 1등, n: 인원, enabled: {booster:true,...}
 export function itemWeights(rankIdx, n, enabled, isFirst) {
   const p = n <= 1 ? 0 : rankIdx / (n - 1); // 0(1등) ~ 1(꼴등)
+  const isLast = n > 1 && rankIdx === n - 1;
   const w = {
     booster: 1 + 2.5 * p,
     gust: isFirst ? 0 : 0.6 + 2.5 * p,
     timestop: 1 + 1.5 * p,
     magnifier: 1.6,
-    umbrella: 2.2 - 1.2 * p
+    umbrella: 2.2 - 1.2 * p,
+    shield: 1.4,
+    confidence: 0.8 + 1.4 * p,
+    cheer: isLast ? 0 : 1.2,      // 꼴등은 뒤에 친구가 없으니 안 줌
+    dice: 1.4
   };
   for (const k of ITEM_KEYS) if (!enabled || !enabled[k]) w[k] = 0;
   return w;
@@ -103,13 +190,14 @@ export function grantItems(players, ranking, rng, enabled) {
 }
 
 // 문제 채점 때 사용 의사(intents)를 보고 실제로 가진 아이템만 소모
-// → { items: 남은 아이템, booster, timestop, magnifier }
+// → { items: 남은 아이템, booster, timestop, magnifier, confidence, cheer }
 export function consumeItems(itemsIn, intent) {
   const items = toArr(itemsIn).slice();
   const it = intent || {};
   const use = (k) => { if (it[k] && items.includes(k)) { items.splice(items.indexOf(k), 1); return true; } return false; };
   const booster = use('booster'), timestop = use('timestop'), magnifier = use('magnifier');
-  return { items, booster, timestop, magnifier };
+  const confidence = use('confidence'), cheer = use('cheer');
+  return { items, booster, timestop, magnifier, confidence, cheer };
 }
 
 function removeOne(arr, key) {
@@ -120,15 +208,18 @@ function removeOne(arr, key) {
 
 // 돌풍 처리. players = {uid:{score, items:[]}}, ranking = 처리 시작 시점의 순위순 uid 배열,
 // users = 돌풍을 쓴 uid 배열(사용 순서). 결과: events 배열 (players는 직접 바뀜)
-export function applyGusts(players, ranking, users, rng, enabled) {
+// teamOf(선택): {uid: 모둠} → 모둠 대항전이면 같은 모둠 친구는 건너뛰고 바로 앞의 다른 모둠 친구에게
+export function applyGusts(players, ranking, users, rng, enabled, teamOf) {
   const events = [];
   for (const uid of users) {
     const me = players[uid]; if (!me) continue;
     const myItems = toArr(me.items);
     if (!myItems.includes('gust')) continue;
     const pos = ranking.indexOf(uid);
-    if (pos <= 0) {
-      // 1등은 돌풍 사용 불가 → 다른 아이템으로 교체
+    let tpos = pos - 1;
+    if (teamOf) while (tpos >= 0 && teamOf[ranking[tpos]] === teamOf[uid]) tpos--;
+    if (pos <= 0 || tpos < 0) {
+      // 1등(또는 앞에 다른 모둠 친구가 없음)은 돌풍 사용 불가 → 다른 아이템으로 교체
       removeOne(myItems, 'gust');
       const swap = pickItem(rng, 0, ranking.length, enabled, true, 'gust');
       if (swap) myItems.push(swap);
@@ -136,7 +227,7 @@ export function applyGusts(players, ranking, users, rng, enabled) {
       events.push({ type: 'swap', from: uid, item: swap });
       continue;
     }
-    const tid = ranking[pos - 1], tg = players[tid];
+    const tid = ranking[tpos], tg = players[tid];
     removeOne(myItems, 'gust');
     me.items = myItems;
     const tItems = toArr(tg.items);
